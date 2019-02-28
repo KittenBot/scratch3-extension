@@ -1,3 +1,5 @@
+@import '~antd/dist/antd.css';
+
 .App {
   text-align: center;
 }
@@ -30,4 +32,33 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.trigger {
+  font-size: 18px;
+  line-height: 64px;
+  padding: 0 24px;
+  cursor: pointer;
+  transition: color .3s;
+}
+
+.trigger:hover {
+  color: #1890ff;
+}
+
+.logo {
+  height: 32px;
+  background: rgba(255,255,255,.2);
+  margin: 16px;
+}
+
+.color-display{
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  border: 1px #5B5B5B solid
+}
+
+.config-row {
+  margin: 10px;
 }
