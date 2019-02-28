@@ -1,6 +1,6 @@
 import bindAll from 'lodash.bindall';
 import LocalizedStrings from 'react-localization';
-import { Upload, Row, Col, Button, Layout, Icon, Menu , Divider, Tabs, Radio, message, Input, Modal, Upload } from 'antd';
+import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Tabs, Radio, message, Input, Modal, Upload } from 'antd';
 import React, { Component } from 'react';
 import Blockly from 'scratch-blocks';
 
@@ -17,37 +17,133 @@ let strings = new LocalizedStrings({
     preview: "Generate Preview",
     extdef: "Extension Define",
     maincolor: "Main Color",
-    secondcolor: "Second Color"
-
+    secondcolor: "Second Color",
+    menuIcon: "Menu Icon",
+    blockIcon: "Block Icon",
+    addLabel: "Add Label",
+    addInput: "Add Input Parameter",
+    addBool: "Add Boolean Parameter",
+    addblock: "Add Blocks",
+    addBlockFun: "Add Functional Block",
+    addBlockBool: "Add Boolean Block",
+    addBlockHat: "Add Hat Block",
   },
   zh: {
     preview: "生成预览",
     extdef: "插件定义",
     maincolor: "主颜色",
-    secondcolor: "次颜色"
+    secondcolor: "次颜色",
+    menuIcon: "菜单栏图标",
+    blockIcon: "方块图标",
+    addLabel: "添加文本",
+    addInput: "添加输入变量",
+    addBool: "添加布尔变量",
+    addblock: "添加方块",
+    addBlockFun: "添加函数方块",
+    addBlockBool: "添加布尔方块",
+    addBlockHat: "添加帽子方块",
   }
 });
 
+const emptyToolBox = `<xml id="toolbox" style="display:none"></xml>`;
 class App extends Component {
   constructor (props){
     super(props);
     this.state = {
       collapsed: false,
-      extID: 'testExt'
+      extID: 'testExt',
+      extName: 'Test',
+      menuIcon: null,
+      blockIcon: null,
+      blocks: [],
+      menus: [],
+      showMutation: false
     }
-    this.toolbox = `<xml id="toolbox" style="display:none"></xml>`
-
+    bindAll(this, [
+      "uploadMenuIcon",
+      "uploadBlockIcon",
+      "closeMutationModal",
+      "generatePreview",
+      "addBlockFun",
+      "addBlockBool",
+      "addBlockHat",
+      "injectDeclareWorkspace"
+    ]);
   }
 
   componentDidMount (){
+    Blockly.Blocks.defaultToolbox = null;
+
     this.previewWorkspace = Blockly.inject('preview', {
       media: '../media/',
-      toolbox: this.toolbox,
+      toolbox: emptyToolBox,
       zoom: {
         startScale: 0.75
       }
     });
+
+    Blockly.Procedures.externalProcedureDefCallback = function (mutation, cb) {
+      console.log("externalProcedureDefCallback");
+    }
+
     window.ws = this.previewWorkspace;
+  }
+
+  uploadMenuIcon (file){
+
+  }
+
+  uploadBlockIcon (file){
+
+
+  }
+
+  generatePreview (){
+
+  }
+
+  closeMutationModal (){
+    this.setState({showMutation: false})
+  }
+
+  injectDeclareWorkspace (ref){
+    console.log("injectDeclareWorkspace", ref);
+    this.blocks = ref;
+    this.declareWorkspace = Blockly.inject('declare', {
+      media: '../media/'
+    });
+    this.mutationRoot = this.declareWorkspace.newBlock('procedures_declaration');
+    this.mutationRoot.setMovable(false);
+    this.mutationRoot.setDeletable(false);
+    this.mutationRoot.contextMenu = false;
+
+    // this.mutationRoot.domToMutation(this.props.mutator);
+    this.mutationRoot.initSvg();
+    this.mutationRoot.render();
+  }
+
+  addBlockFun (){
+    this.setState({
+      showMutation: true
+    });
+    if (this.declareWorkspace) this.declareWorkspace.clear();
+
+  }
+
+  addBlockBool (){
+    this.setState({
+      showMutation: true
+    });
+    if (this.declareWorkspace) this.declareWorkspace.clear();
+
+  }
+
+  addBlockHat (){
+    this.setState({
+      showMutation: true
+    });
+    if (this.declareWorkspace) this.declareWorkspace.clear();
+
   }
 
   render() {
@@ -113,14 +209,57 @@ class App extends Component {
                   <div className="color-display" style={{background: this.state.secondColor}} onClick={()=>this.setState({fontColorPick: true})} /> 
                   </Col>
                 </Row>
+                <Row className="config-row">
+                  <Col span={4}>
+                    <Upload
+                        name="projheader"
+                        accept=".png,.svg"
+                        className="header-uploader"
+                        showUploadList={false}
+                        beforeUpload={this.uploadMenuIcon}
+                    >
+                        <Button><Icon type="picture"/>{strings.menuIcon}</Button>
+                    </Upload>
+                  </Col>
+                  <Col span={4}>
+                    <Upload
+                        name="projheader"
+                        accept=".png,.svg"
+                        className="header-uploader"
+                        showUploadList={false}
+                        beforeUpload={this.uploadBlockIcon}
+                    >
+                        <Button><Icon type="picture"/>{strings.blockIcon}</Button>
+                    </Upload>
+                  </Col>
+                </Row>
+                <Divider>{strings.addblock}</Divider>
+                <Row className="btn-wrap">
+                  <Button onClick={this.addBlockFun}>{strings.addBlockFun}</Button>
+                  <Button onClick={this.addBlockBool}>{strings.addBlockBool}</Button>
+                  <Button onClick={this.addBlockHat}>{strings.addBlockHat}</Button>
+                </Row>
               </Col>
               <Col span={8} offset={1}>
-                <Button type="primary" shape="round" icon="picture" >{strings.preview}</Button>
+                <Button type="primary" shape="round" icon="picture" onClick={this.generatePreview}>{strings.preview}</Button>
                 <div id="preview" style={{height: 600, width: 480, marginTop: 10}}></div>
               </Col>
             </Row>
           </Content>
         </Layout>
+        <Modal
+            title="Modify Block"
+            visible={this.state.showMutation}
+            onOk={this.closeMutationModal}
+            onCancel={this.closeMutationModal}
+        >
+            <div id="declare" style={{width: 480, height: 360}} ref={this.injectDeclareWorkspace}></div>
+            <div className="btn-wrap">
+              <Button>{strings.addLabel}</Button>
+              <Button>{strings.addInput}</Button>
+              <Button>{strings.addBool}</Button>
+            </div>
+        </Modal>
       </Layout>
     );
   }

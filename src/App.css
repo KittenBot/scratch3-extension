@@ -62,3 +62,7 @@
 .config-row {
   margin: 10px;
 }
+
+.btn-wrap > button {
+  margin-left: 5px;
+}
