@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Scratch3Ext",
+  "name": "Create Scratch3 extension in an easy way",
   "icons": [
     {
       "src": "favicon.ico",
