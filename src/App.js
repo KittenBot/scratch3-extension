@@ -1,6 +1,6 @@
 import bindAll from 'lodash.bindall';
 import LocalizedStrings from 'react-localization';
-import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Tabs, Radio, message, Input, Modal, Upload } from 'antd';
+import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, message, Input, Modal, Upload } from 'antd';
 import React, { Component } from 'react';
 import Blockly from 'scratch-blocks';
 
@@ -48,6 +48,31 @@ let strings = new LocalizedStrings({
 });
 
 const emptyToolBox = `<xml id="toolbox" style="display:none"></xml>`;
+
+const blockColumn = [{
+  title: 'BlockID',
+  dataIndex: 'id',
+  key: 'id',
+  render: text => <a href="javascript:;">{text}</a>,
+}, {
+  title: 'Preview',
+  dataIndex: 'svg',
+  key: 'svg',
+  render: (text, record) => (
+    <img src={`data:image/svg+xml;charset=utf-8,${text}`} />
+  )
+}, {
+  title: 'Action',
+  key: 'action',
+  render: (text, record) => (
+    <span>
+      <a href="javascript:;">Edit {record.name}</a>
+      <Divider type="vertical" />
+      <a href="javascript:;">Delete</a>
+    </span>
+  ),
+}];
+
 class App extends Component {
   constructor (props){
     super(props);
@@ -57,6 +82,7 @@ class App extends Component {
       extName: 'Test',
       menuIcon: null,
       blockIcon: null,
+      editBlockID: 'newblock',
       blocks: [],
       menus: [],
       addBlockType: '',
@@ -78,6 +104,7 @@ class App extends Component {
       "injectDeclareWorkspace",
       "initEmptyBlock"
     ]);
+    window.store = this.state;
   }
 
   componentDidMount (){
@@ -161,11 +188,38 @@ class App extends Component {
     this.declareWorkspace = Blockly.inject('declare', {
       media: './media/'
     });
+    const _this = this;
+    this.declareWorkspace.addChangeListener(function(evt) {
+      // console.log(Object.getPrototypeOf(evt).type, evt);
+      if (_this.mutationRoot) {
+        _this.mutationRoot.onChangeFn();
+      }
+    });
     this.initEmptyBlock(this.state.addBlockType);
   }
 
   applyMutation (){
+    this.setState({
+      showMutation: false
+    });
+    const svg = this.mutationRoot.getSvgRoot();
+    const bbox = svg.getBBox();
+    svg.removeAttribute('transform');
+    let xml = (new XMLSerializer).serializeToString(svg);
+    xml = `<svg id="src" xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}" >
+    ${xml}
+    </svg>`;
 
+    this.setState({
+      blocks: [...this.state.blocks, {
+        id: this.state.editBlockID,
+        svg: xml
+      }]
+    });
+
+    console.log("xml", xml);
+    var mutation = this.mutationRoot.mutationToDom(true)
+    console.log(mutation);
   }
 
   addLabel (){
@@ -314,6 +368,8 @@ class App extends Component {
                   <Button onClick={this.addBlockBool}>{strings.addBlockBool}</Button>
                   <Button onClick={this.addBlockHat}>{strings.addBlockHat}</Button>
                 </Row>
+                <Divider></Divider>
+                <Table columns={blockColumn} dataSource={this.state.blocks} />
               </Col>
               <Col span={8} offset={1}>
                 <Button type="primary" shape="round" icon="picture" onClick={this.generatePreview}>{strings.preview}</Button>
@@ -328,12 +384,20 @@ class App extends Component {
             onOk={this.applyMutation}
             onCancel={this.closeMutationModal}
         >
-            <div id="declare" style={{width: 480, height: 360}} ref={this.injectDeclareWorkspace}></div>
-            <div className="btn-wrap">
-              <Button onClick={this.addLabel}>{strings.addLabel}</Button>
-              <Button onClick={this.addInput}>{strings.addInput}</Button>
-              <Button onClick={this.addBool}>{strings.addBool}</Button>
-            </div>
+          <Row>
+            <Col span={3}>
+              <p>Block ID</p>
+            </Col>
+            <Col span={8}>
+              <Input value={this.state.editBlockID} onChange={this.setTxtX} />
+            </Col>
+          </Row>
+          <div id="declare" style={{width: 480, height: 360}} ref={this.injectDeclareWorkspace}></div>
+          <div className="btn-wrap">
+            <Button onClick={this.addLabel}>{strings.addLabel}</Button>
+            <Button onClick={this.addInput}>{strings.addInput}</Button>
+            <Button onClick={this.addBool}>{strings.addBool}</Button>
+          </div>
         </Modal>
       </Layout>
     );
