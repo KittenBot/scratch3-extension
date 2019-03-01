@@ -80,6 +80,8 @@
   margin-top: 5px;
 }
 
-.btn-wrap > button {
+.btn-wrap > * {
   margin-left: 5px;
 }
+
+

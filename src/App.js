@@ -33,7 +33,9 @@ let strings = new LocalizedStrings({
     addBlockOutput: "Add Output Block",
     addBlockBool: "Add Boolean Block",
     addBlockHat: "Add Hat Block",
-    delSure: "delete this block?"
+    delSure: "delete this block?",
+    uniqBlockId: "* block ID should be unique",
+    uniqBlockName: "* block parameter names should be unique",
   },
   zh: {
     extID: "插件ID",
@@ -54,7 +56,9 @@ let strings = new LocalizedStrings({
     addBlockOutput: "添加输出方块",
     addBlockBool: "添加布尔方块",
     addBlockHat: "添加帽子方块",
-    delSure: "删除该方块?"
+    delSure: "删除该方块?",
+    uniqBlockId: "* 积木ID需要全局唯一",
+    uniqBlockName: "* 积木参数名字需要唯一",
   }
 });
 
@@ -103,9 +107,10 @@ class App extends Component {
       "injectDeclareWorkspace",
       "makeBlock",
       "editBlock",
-      "deleteBlock"
+      "deleteBlock",
+      "saveToJson",
+      "loadFromJson",
     ]);
-    window.store = this.state;
 
     this.blockColumn = [{
       title: 'Op Code',
@@ -508,6 +513,32 @@ class App extends Component {
     this.setState({blocks});
   }
 
+  saveToJson (){
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", this.state.extID + ".json");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+  loadFromJson (file){
+    if (file){
+      let reader = new FileReader();
+      const _this = this;
+      reader.onerror = function () {
+          console.warn("read image file error")
+      };
+      reader.onload = ev => {
+        this.setState(Object.assign({},
+          JSON.parse(reader.result)
+        ))
+      }
+      reader.readAsText(file);
+    }
+  }
+
   render() {
     return (
       <Layout style={{height: '100vh'}}>
@@ -612,8 +643,17 @@ class App extends Component {
                 <Button type="primary" shape="round" icon="picture" onClick={this.generatePreview}>{strings.preview}</Button>
                 <div id="preview" style={{height: 600, width: 480, marginTop: 10}}></div>
                 <Row className="btn-wrap">
-                  <Button >Save</Button>
-                  <Button >Open</Button>
+                  <Button onClick={this.saveToJson}>Save</Button>
+                  <Upload 
+                    name="jsonUpload"
+                    accept=".json"
+                    className="header-uploader"
+                    showUploadList={false}
+                    beforeUpload={this.loadFromJson}
+                  >
+                    <Button>Open</Button>
+                  </Upload>
+                  
                   <Button type="primary">Export index.js</Button>
                 </Row>
               </Col>
@@ -633,7 +673,7 @@ class App extends Component {
             <Button onClick={this.addInputNum}>{strings.addInputNum}</Button>
             <Button onClick={this.addBool}>{strings.addBool}</Button>
           </div>
-          <p>* block parameter names should be unique</p>
+          <p>{strings.uniqBlockName}</p>
           <Divider />
           <Row>
             <Col span={3}>
@@ -643,7 +683,7 @@ class App extends Component {
               <Input value={this.state.editBlockID} onChange={e => this.setState({editBlockID: e.target.value})} />
             </Col>
             <Col span={12}>
-              <p>* block ID should be unique</p>
+              <p>{strings.uniqBlockId}</p>
             </Col>
           </Row>
         </Modal>
