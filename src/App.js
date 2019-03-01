@@ -25,6 +25,7 @@ let strings = new LocalizedStrings({
     addBool: "Add Boolean Parameter",
     addblock: "Add Blocks",
     addBlockFun: "Add Functional Block",
+    addBlockOutput: "Add Output Block",
     addBlockBool: "Add Boolean Block",
     addBlockHat: "Add Hat Block",
   },
@@ -40,6 +41,7 @@ let strings = new LocalizedStrings({
     addBool: "添加布尔变量",
     addblock: "添加方块",
     addBlockFun: "添加函数方块",
+    addBlockOutput: "添加输出方块",
     addBlockBool: "添加布尔方块",
     addBlockHat: "添加帽子方块",
   }
@@ -57,6 +59,7 @@ class App extends Component {
       blockIcon: null,
       blocks: [],
       menus: [],
+      addBlockType: '',
       showMutation: false
     }
     bindAll(this, [
@@ -65,9 +68,15 @@ class App extends Component {
       "closeMutationModal",
       "generatePreview",
       "addBlockFun",
+      "addBlockOutput",
       "addBlockBool",
       "addBlockHat",
-      "injectDeclareWorkspace"
+      "addLabel",
+      "addInput",
+      "addBool",
+      "applyMutation",
+      "injectDeclareWorkspace",
+      "initEmptyBlock"
     ]);
   }
 
@@ -75,7 +84,7 @@ class App extends Component {
     Blockly.Blocks.defaultToolbox = null;
 
     this.previewWorkspace = Blockly.inject('preview', {
-      media: '../media/',
+      media: './media/',
       toolbox: emptyToolBox,
       zoom: {
         startScale: 0.75
@@ -103,17 +112,13 @@ class App extends Component {
   }
 
   closeMutationModal (){
+    this.declareWorkspace.clear();
     this.setState({showMutation: false})
   }
 
-  injectDeclareWorkspace (ref){
-    console.log("injectDeclareWorkspace", ref);
-    this.blocks = ref;
-    this.declareWorkspace = Blockly.inject('declare', {
-      media: '../media/'
-    });
+  initEmptyBlock (blockType){
     this.mutationRoot = this.declareWorkspace.newBlock('procedures_declaration');
-    this.mutationRoot.setMovable(false);
+    // this.mutationRoot.setMovable(false);
     this.mutationRoot.setDeletable(false);
     this.mutationRoot.contextMenu = false;
 
@@ -131,21 +136,79 @@ class App extends Component {
     this.mutationRoot.domToMutation(dom);
     this.mutationRoot.initSvg();
     this.mutationRoot.render();
+    if (blockType === 'bool' || blockType === 'output'){
+      this.mutationRoot.setPreviousStatement(false, null);
+      this.mutationRoot.setNextStatement(false, null);
+      this.mutationRoot.setInputsInline(true);
+      if (blockType === 'output'){
+        this.mutationRoot.setOutputShape(Blockly.OUTPUT_SHAPE_ROUND);
+        this.mutationRoot.setOutput(true, 'Boolean');
+      } else {
+        this.mutationRoot.setOutputShape(Blockly.OUTPUT_SHAPE_HEXAGONAL);
+        this.mutationRoot.setOutput(true, 'Number');
+      }
+    }
+    const {x, y} = this.mutationRoot.getRelativeToSurfaceXY();
+    const dy = (360 / 2) - (this.mutationRoot.height / 2) - y;
+    const dx = (480 / 2) - (this.mutationRoot.width / 2) - x;
+    this.mutationRoot.moveBy(dx, dy);
+    window.mu = this.mutationRoot;
   }
 
+  injectDeclareWorkspace (ref){
+    console.log("injectDeclareWorkspace", ref);
+    this.blocks = ref;
+    this.declareWorkspace = Blockly.inject('declare', {
+      media: './media/'
+    });
+    this.initEmptyBlock(this.state.addBlockType);
+  }
+
+  applyMutation (){
+
+  }
+
+  addLabel (){
+    this.mutationRoot.addLabelExternal();
+  }
+  addInput (){
+    this.mutationRoot.addStringNumberExternal();
+  }
+  addBool (){
+    this.mutationRoot.addBooleanExternal();
+  }
   addBlockFun (){
     this.setState({
       showMutation: true
     });
-    if (this.declareWorkspace) this.declareWorkspace.clear();
+    if (this.declareWorkspace){
+      this.declareWorkspace.clear();
+      this.initEmptyBlock();
+    }
 
+  }
+
+  addBlockOutput (){
+    this.setState({
+      addBlockType: 'output',
+      showMutation: true
+    });
+    if (this.declareWorkspace){
+      this.declareWorkspace.clear();
+      this.initEmptyBlock('output');
+    }
   }
 
   addBlockBool (){
     this.setState({
+      addBlockType: 'bool',
       showMutation: true
     });
-    if (this.declareWorkspace) this.declareWorkspace.clear();
+    if (this.declareWorkspace){
+      this.declareWorkspace.clear();
+      this.initEmptyBlock('bool');
+
+    }
 
   }
 
@@ -247,6 +310,7 @@ class App extends Component {
                 <Divider>{strings.addblock}</Divider>
                 <Row className="btn-wrap">
                   <Button onClick={this.addBlockFun}>{strings.addBlockFun}</Button>
+                  <Button onClick={this.addBlockOutput}>{strings.addBlockOutput}</Button>
                   <Button onClick={this.addBlockBool}>{strings.addBlockBool}</Button>
                   <Button onClick={this.addBlockHat}>{strings.addBlockHat}</Button>
                 </Row>
@@ -261,14 +325,14 @@ class App extends Component {
         <Modal
             title="Modify Block"
             visible={this.state.showMutation}
-            onOk={this.closeMutationModal}
+            onOk={this.applyMutation}
             onCancel={this.closeMutationModal}
         >
             <div id="declare" style={{width: 480, height: 360}} ref={this.injectDeclareWorkspace}></div>
             <div className="btn-wrap">
-              <Button>{strings.addLabel}</Button>
-              <Button>{strings.addInput}</Button>
-              <Button>{strings.addBool}</Button>
+              <Button onClick={this.addLabel}>{strings.addLabel}</Button>
+              <Button onClick={this.addInput}>{strings.addInput}</Button>
+              <Button onClick={this.addBool}>{strings.addBool}</Button>
             </div>
         </Modal>
       </Layout>
