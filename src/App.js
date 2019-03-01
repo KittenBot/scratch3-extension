@@ -19,6 +19,7 @@ let strings = new LocalizedStrings({
     extName: "Extension Name",
     preview: "Generate Preview",
     extdef: "Extension Define",
+    extimg: "Extension Image",
     maincolor: "Extension Color",
     secondcolor: "Parameter Color",
     menuIcon: "Menu Icon",
@@ -38,6 +39,7 @@ let strings = new LocalizedStrings({
     extName: "插件名称",
     preview: "生成预览",
     extdef: "插件定义",
+    extimg: "插件图标",
     maincolor: "插件颜色",
     secondcolor: "变量颜色",
     menuIcon: "菜单栏图标",
@@ -143,12 +145,31 @@ class App extends Component {
   }
 
   uploadMenuIcon (file){
+    let reader = new FileReader();
+    const _this = this;
+    reader.onerror = function () {
+      console.warn("read image file error")
+    };
 
+    reader.onload = function (ev) {
+      const dataUri = reader.result;
+      _this.setState({menuIcon: dataUri});
+    };
+    reader.readAsDataURL(file);
   }
 
   uploadBlockIcon (file){
+    let reader = new FileReader();
+    const _this = this;
+    reader.onerror = function () {
+      console.warn("read image file error")
+    };
 
-
+    reader.onload = function (ev) {
+      const dataUri = reader.result;
+      _this.setState({blockIcon: dataUri});
+    };
+    reader.readAsDataURL(file);
   }
 
   generatePreview (){
@@ -159,8 +180,8 @@ class App extends Component {
     let menuIconURI = '';
     if (this.state.menuIcon) {
         menuIconURI = this.state.menuIcon;
-    } else if (this.state.blockIconURI) {
-        menuIconURI = this.state.blockIconURI;
+    } else if (this.state.blockIcon) {
+        menuIconURI = this.state.blockIcon;
     }
     const blockJsons = [];
     const menuIconXML = menuIconURI ?
@@ -169,17 +190,39 @@ class App extends Component {
     xmlParts.push(`<category name="${this.state.extName}" id="${this.state.extID}" ${colorXML} ${menuIconXML}>`);
     xmlParts.push.apply(xmlParts, this.state.blocks.map(block => {
       const extendedOpcode = `${this.state.extID}_${block.opcode}`;
-      const args0 = block.args.map(arg => arg.json);
+      let argIndex = 0;
       const blockJSON = {
         type: extendedOpcode,
-        message0: block.msg,
-        args0: args0,
         category: this.state.extName,
         colour: this.state.color1,
         inputsInline: true,
         colourSecondary: this.state.color2,
         extensions: ['scratch_extension']
       };
+      const iconURI = this.state.blockIcon;
+
+      if (iconURI) {
+          blockJSON.message0 = '%1 %2';
+          const iconJSON = {
+              type: 'field_image',
+              src: iconURI,
+              width: 40,
+              height: 40
+          };
+          const separatorJSON = {
+              type: 'field_vertical_separator'
+          };
+          blockJSON.args0 = [
+              iconJSON,
+              separatorJSON
+          ];
+          argIndex+=1;
+      }
+
+      blockJSON[`message${argIndex}`] = block.msg;
+      blockJSON[`args${argIndex}`] = block.args.map(arg => arg.json);
+
+
       if (block.type === 'func'){
         blockJSON.outputShape = OUTPUT_SHAPE_SQUARE;
         blockJSON.nextStatement = null;
@@ -503,8 +546,10 @@ class App extends Component {
                       </div> : null }
                   </Col>
                 </Row>
+                <Divider>{strings.extimg}</Divider>
                 <Row className="config-row">
                   <Col span={4}>
+                    {this.state.menuIcon ? <img className="icon-img" src={this.state.menuIcon} /> : null}
                     <Upload
                         name="projheader"
                         accept=".png,.svg"
@@ -516,6 +561,7 @@ class App extends Component {
                     </Upload>
                   </Col>
                   <Col span={4}>
+                    {this.state.blockIcon ? <img className="icon-img" src={this.state.blockIcon} /> : null}
                     <Upload
                         name="projheader"
                         accept=".png,.svg"

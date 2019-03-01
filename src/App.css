@@ -52,6 +52,11 @@
   margin: 16px;
 }
 
+.icon-img {
+  max-width: 100px;
+  margin: 10px;
+}
+
 .color-display{
   width: 30px;
   height: 30px;
