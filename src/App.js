@@ -1,6 +1,6 @@
 import bindAll from 'lodash.bindall';
 import LocalizedStrings from 'react-localization';
-import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, message, Input, Modal, Upload } from 'antd';
+import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, Popconfirm, Input, Modal, Upload } from 'antd';
 import React, { Component } from 'react';
 import Blockly from 'scratch-blocks';
 
@@ -33,6 +33,7 @@ let strings = new LocalizedStrings({
     addBlockOutput: "Add Output Block",
     addBlockBool: "Add Boolean Block",
     addBlockHat: "Add Hat Block",
+    delSure: "delete this block?"
   },
   zh: {
     extID: "插件ID",
@@ -53,6 +54,7 @@ let strings = new LocalizedStrings({
     addBlockOutput: "添加输出方块",
     addBlockBool: "添加布尔方块",
     addBlockHat: "添加帽子方块",
+    delSure: "删除该方块?"
   }
 });
 
@@ -60,30 +62,6 @@ const emptyToolBox = `<xml style="display: none">
 <category name="Test" id="testExt" colour="#0FBD8C" secondaryColour="#0DA57A" >
 </category>
 </xml>`;
-
-const blockColumn = [{
-  title: 'Op Code',
-  dataIndex: 'opcode',
-  key: 'opcode',
-  render: text => <a href="javascript:;">{text}</a>,
-}, {
-  title: 'Preview',
-  dataIndex: 'svg',
-  key: 'svg',
-  render: (text, record) => (
-    <img src={`data:image/svg+xml;charset=utf-8,${text}`} />
-  )
-}, {
-  title: 'Action',
-  key: 'action',
-  render: (text, record) => (
-    <span>
-      <a href="javascript:;">Edit {record.name}</a>
-      <Divider type="vertical" />
-      <a href="javascript:;">Delete</a>
-    </span>
-  ),
-}];
 
 const OUTPUT_SHAPE_HEXAGONAL = 1;
 const OUTPUT_SHAPE_ROUND = 2;
@@ -123,9 +101,38 @@ class App extends Component {
       "addBool",
       "applyMutation",
       "injectDeclareWorkspace",
-      "initEmptyBlock"
+      "makeBlock",
+      "editBlock",
+      "deleteBlock"
     ]);
     window.store = this.state;
+
+    this.blockColumn = [{
+      title: 'Op Code',
+      dataIndex: 'opcode',
+      key: 'opcode',
+      width: '20%',
+      render: text => <a href="javascript:;">{text}</a>,
+    }, {
+      title: 'Preview',
+      dataIndex: 'svg',
+      key: 'svg',
+      render: (text, record) => (
+        <img src={`data:image/svg+xml;charset=utf-8,${text}`} />
+      )
+    }, {
+      title: 'Action',
+      key: 'action',
+      render: (text, record) => (
+        <span>
+          <a href="#" onClick={() => this.editBlock(record.opcode)} >Edit {record.name}</a>
+          <Divider type="vertical" />
+          <Popconfirm title={strings.delSure} onConfirm={() => this.deleteBlock(record.opcode)}>
+            <a href="#">Delete</a>
+          </Popconfirm>
+        </span>
+      ),
+    }];
   }
 
   componentDidMount (){
@@ -268,7 +275,7 @@ class App extends Component {
     this.setState({showMutation: false})
   }
 
-  initEmptyBlock (blockType){
+  makeBlock (blockType, mutationText){
     this.mutationRoot = this.declareWorkspace.newBlock('procedures_declaration');
     // this.mutationRoot.setMovable(false);
     this.mutationRoot.setDeletable(false);
@@ -291,15 +298,17 @@ class App extends Component {
     };
 
     // this.mutationRoot.domToMutation(this.props.mutator);
-    var mutationText = '<xml>' +
-      '<mutation' +
-      ' proccode="' + Blockly.Msg['PROCEDURE_DEFAULT_NAME'] + '"' +
-      ' argumentids="[]"' +
-      ' argumentnames="[]"' +
-      ' argumentdefaults="[]"' +
-      ' warp="false">' +
-      '</mutation>' +
-      '</xml>';
+    if (!mutationText){
+      mutationText = '<xml>' +
+        '<mutation' +
+        ' proccode="' + Blockly.Msg['PROCEDURE_DEFAULT_NAME'] + '"' +
+        ' argumentids="[]"' +
+        ' argumentnames="[]"' +
+        ' argumentdefaults="[]"' +
+        ' warp="false">' +
+        '</mutation>' +
+        '</xml>';
+    }
     const dom = Blockly.Xml.textToDom(mutationText).firstChild;
     this.mutationRoot.domToMutation(dom);
     this.mutationRoot.initSvg();
@@ -342,13 +351,10 @@ class App extends Component {
         _this.mutationRoot.onChangeFn();
       }
     });
-    this.initEmptyBlock(this.state.addBlockType);
+    this.makeBlock(this.state.addBlockType);
   }
 
   applyMutation (){
-    this.setState({
-      showMutation: false
-    });
     const svg = this.mutationRoot.getSvgRoot();
     const bbox = svg.getBBox();
     svg.removeAttribute('transform');
@@ -357,8 +363,8 @@ class App extends Component {
     ${xml}
     </svg>`;
 
-    var mutation = this.mutationRoot.mutationToDom(true)
-    console.log(mutation);
+    const mutation = this.mutationRoot.mutationToDom(true)
+    // console.log(mutation);
     const argNames = JSON.parse(mutation.getAttribute('argumentnames'));
     const args = [];
 
@@ -407,18 +413,20 @@ class App extends Component {
     }
 
     const msg = proccode.join(" ");
+    const mutationText = `<xml>${Blockly.Xml.domToText(mutation)}</xml>`;
     const newBlock = {
       opcode: this.state.editBlockID,
       svg: xml,
       msg,
       args,
-      mutation: mutation,
+      mutationText: mutationText,
       type: this.state.addBlockType
     };
-    const blocks = [...this.state.blocks].filter(blk => blk.opcode !== this.state.editBlockID);;
+    const blocks = [...this.state.blocks].filter(blk => blk.opcode !== this.state.editBlockID);
     blocks.push(newBlock);
     
     this.setState({
+      showMutation: false,
       blocks: blocks
     });
   }
@@ -442,7 +450,7 @@ class App extends Component {
     });
     if (this.declareWorkspace){
       this.declareWorkspace.clear();
-      this.initEmptyBlock();
+      this.makeBlock();
     }
 
   }
@@ -454,7 +462,7 @@ class App extends Component {
     });
     if (this.declareWorkspace){
       this.declareWorkspace.clear();
-      this.initEmptyBlock('output');
+      this.makeBlock('output');
     }
   }
 
@@ -465,7 +473,7 @@ class App extends Component {
     });
     if (this.declareWorkspace){
       this.declareWorkspace.clear();
-      this.initEmptyBlock('bool');
+      this.makeBlock('bool');
 
     }
 
@@ -478,9 +486,26 @@ class App extends Component {
     });
     if (this.declareWorkspace){
       this.declareWorkspace.clear();
-      this.initEmptyBlock('hat');
+      this.makeBlock('hat');
     }
 
+  }
+
+  editBlock (opcode){
+    const block = this.state.blocks.filter(blk => blk.opcode === opcode);
+    if (block && block.length == 1){
+      this.declareWorkspace.clear();
+      this.makeBlock(block[0].type, block[0].mutationText);
+      this.setState({
+        showMutation: true,
+        addBlockType: block[0].type
+      });
+    }
+  }
+
+  deleteBlock (opcode){
+    const blocks = [...this.state.blocks].filter(blk => blk.opcode !== opcode);
+    this.setState({blocks});
   }
 
   render() {
@@ -581,11 +606,16 @@ class App extends Component {
                   <Button onClick={this.addBlockHat}>{strings.addBlockHat}</Button>
                 </Row>
                 <Divider></Divider>
-                <Table columns={blockColumn} dataSource={this.state.blocks} />
+                <Table columns={this.blockColumn} dataSource={this.state.blocks} />
               </Col>
               <Col span={8} offset={1}>
                 <Button type="primary" shape="round" icon="picture" onClick={this.generatePreview}>{strings.preview}</Button>
                 <div id="preview" style={{height: 600, width: 480, marginTop: 10}}></div>
+                <Row className="btn-wrap">
+                  <Button >Save</Button>
+                  <Button >Open</Button>
+                  <Button type="primary">Export index.js</Button>
+                </Row>
               </Col>
             </Row>
           </Content>
