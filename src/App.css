@@ -59,6 +59,14 @@
   border: 1px #5B5B5B solid
 }
 
+.color-cover{
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+}
+
 .config-row {
   margin: 10px;
 }

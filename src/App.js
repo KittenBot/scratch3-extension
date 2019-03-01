@@ -7,6 +7,7 @@ import Blockly from 'scratch-blocks';
 import { SketchPicker } from 'react-color';
 import logo from './logo.svg';
 import './App.css';
+import { string } from 'postcss-selector-parser';
 
 const { SubMenu } = Menu;
 const { Header, Content, Footer, Sider } = Layout;
@@ -14,10 +15,12 @@ const RadioGroup = Radio.Group;
 
 let strings = new LocalizedStrings({
   en:{
+    extID: "Extension ID",
+    extName: "Extension Name",
     preview: "Generate Preview",
     extdef: "Extension Define",
-    maincolor: "Main Color",
-    secondcolor: "Second Color",
+    maincolor: "Extension Color",
+    secondcolor: "Parameter Color",
     menuIcon: "Menu Icon",
     blockIcon: "Block Icon",
     addLabel: "Add Label",
@@ -31,10 +34,12 @@ let strings = new LocalizedStrings({
     addBlockHat: "Add Hat Block",
   },
   zh: {
+    extID: "插件ID",
+    extName: "插件名称",
     preview: "生成预览",
     extdef: "插件定义",
-    maincolor: "主颜色",
-    secondcolor: "次颜色",
+    maincolor: "插件颜色",
+    secondcolor: "变量颜色",
     menuIcon: "菜单栏图标",
     blockIcon: "方块图标",
     addLabel: "添加文本",
@@ -86,9 +91,11 @@ class App extends Component {
   constructor (props){
     super(props);
     this.state = {
-      collapsed: false,
+      collapsed: true,
       extID: 'testExt',
       extName: 'Test',
+      color1Pick: false,
+      color2Pick: false,
       color1: '#0FBD8C',
       color2: '#0DA57A',
       menuIcon: null,
@@ -362,6 +369,7 @@ class App extends Component {
       svg: xml,
       msg,
       args,
+      mutation: mutation,
       type: this.state.addBlockType
     };
     const blocks = [...this.state.blocks].filter(blk => blk.opcode !== this.state.editBlockID);;
@@ -443,16 +451,8 @@ class App extends Component {
           <div className="logo" />
           <Menu theme="dark" mode="inline" defaultSelectedKeys={['1']}>
             <Menu.Item key="1">
-              <Icon type="user" />
-              <span>nav 1</span>
-            </Menu.Item>
-            <Menu.Item key="2">
-              <Icon type="video-camera" />
-              <span>nav 2</span>
-            </Menu.Item>
-            <Menu.Item key="3">
-              <Icon type="upload" />
-              <span>nav 3</span>
+              <Icon type="plus" />
+              <span>New Extension</span>
             </Menu.Item>
           </Menu>
         </Sider>
@@ -472,27 +472,35 @@ class App extends Component {
               <Col span={14}>
                 <Divider>{strings.extdef}</Divider>
                 <Row className="config-row">
-                  <Col span={1}>
-                    <p>ID</p>
+                  <Col span={2}>
+                    <p>{strings.extID}</p>
                   </Col>
                   <Col span={3}>
-                    <Input value={this.state.extID} onChange={this.setTxtX} />
+                    <Input value={this.state.extID} onChange={e => this.setState({extID: e.target.value})} />
                   </Col>
                   <Col span={2} offset={1}>
-                    <p>Name</p>
+                    <p>{strings.extName}</p>
                   </Col>
                   <Col span={3}>
-                    <Input value={this.state.extName} onChange={this.setTxtX} />
+                    <Input value={this.state.extName} onChange={e => this.setState({extName: e.target.value})} />
                   </Col>
                 </Row>
                 <Row className="config-row">
                   <Col span={2}>{strings.maincolor}</Col>
                   <Col span={3}>
-                    <div className="color-display" style={{background: this.state.color1}} onClick={()=>this.setState({fontColorPick: true})} />
+                    <div className="color-display" style={{background: this.state.color1}} onClick={()=>this.setState({color1Pick: true})} />
+                    { this.state.color1Pick ? <div style={{position: "absolute", zIndex: '2'}}>
+                      <div className="color-cover" onClick={()=>this.setState({color1Pick: false})}/>
+                        <SketchPicker color={ this.state.color1 } onChange={c => this.setState({color1: c.hex})} />
+                      </div> : null }
                   </Col>
                   <Col span={2}>{strings.secondcolor}</Col>
                   <Col span={3}>
-                  <div className="color-display" style={{background: this.state.color2}} onClick={()=>this.setState({fontColorPick: true})} /> 
+                    <div className="color-display" style={{background: this.state.color2}} onClick={()=>this.setState({color2Pick: true})} />
+                    { this.state.color2Pick ? <div style={{position: "absolute", zIndex: '2'}}>
+                      <div className="color-cover" onClick={()=>this.setState({color2Pick: false})}/>
+                        <SketchPicker color={ this.state.color2 } onChange={c => this.setState({color2: c.hex})} />
+                      </div> : null }
                   </Col>
                 </Row>
                 <Row className="config-row">
@@ -542,14 +550,6 @@ class App extends Component {
             onOk={this.applyMutation}
             onCancel={this.closeMutationModal}
         >
-          <Row>
-            <Col span={3}>
-              <p>Block ID</p>
-            </Col>
-            <Col span={8}>
-              <Input value={this.state.editBlockID} onChange={this.setTxtX} />
-            </Col>
-          </Row>
           <div id="declare" style={{width: 480, height: 360}} ref={this.injectDeclareWorkspace}></div>
           <div className="btn-wrap">
             <Button onClick={this.addLabel}>{strings.addLabel}</Button>
@@ -557,6 +557,19 @@ class App extends Component {
             <Button onClick={this.addInputNum}>{strings.addInputNum}</Button>
             <Button onClick={this.addBool}>{strings.addBool}</Button>
           </div>
+          <p>* block parameter names should be unique</p>
+          <Divider />
+          <Row>
+            <Col span={3}>
+              <p>Block ID</p>
+            </Col>
+            <Col span={8}>
+              <Input value={this.state.editBlockID} onChange={e => this.setState({editBlockID: e.target.value})} />
+            </Col>
+            <Col span={12}>
+              <p>* block ID should be unique</p>
+            </Col>
+          </Row>
         </Modal>
       </Layout>
     );
