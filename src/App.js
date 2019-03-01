@@ -47,12 +47,15 @@ let strings = new LocalizedStrings({
   }
 });
 
-const emptyToolBox = `<xml id="toolbox" style="display:none"></xml>`;
+const emptyToolBox = `<xml style="display: none">
+<category name="Test" id="testExt" colour="#0FBD8C" secondaryColour="#0DA57A" >
+</category>
+</xml>`;
 
 const blockColumn = [{
-  title: 'BlockID',
-  dataIndex: 'id',
-  key: 'id',
+  title: 'Op Code',
+  dataIndex: 'opcode',
+  key: 'opcode',
   render: text => <a href="javascript:;">{text}</a>,
 }, {
   title: 'Preview',
@@ -73,6 +76,10 @@ const blockColumn = [{
   ),
 }];
 
+const OUTPUT_SHAPE_HEXAGONAL = 1;
+const OUTPUT_SHAPE_ROUND = 2;
+const OUTPUT_SHAPE_SQUARE = 3;
+
 class App extends Component {
   constructor (props){
     super(props);
@@ -80,9 +87,12 @@ class App extends Component {
       collapsed: false,
       extID: 'testExt',
       extName: 'Test',
+      color1: '#0FBD8C',
+      color2: '#0DA57A',
       menuIcon: null,
       blockIcon: null,
       editBlockID: 'newblock',
+      editBlockType: 'fun',
       blocks: [],
       menus: [],
       addBlockType: '',
@@ -108,8 +118,6 @@ class App extends Component {
   }
 
   componentDidMount (){
-    Blockly.Blocks.defaultToolbox = null;
-
     this.previewWorkspace = Blockly.inject('preview', {
       media: './media/',
       toolbox: emptyToolBox,
@@ -121,6 +129,18 @@ class App extends Component {
     Blockly.Procedures.externalProcedureDefCallback = function (mutation, cb) {
       console.log("externalProcedureDefCallback");
     }
+    /*
+    // override default custom procedure insert
+    Blockly.ScratchBlocks.ProcedureUtils.addStringNumberExternal = function() {
+      Blockly.WidgetDiv.hide(true);
+      this.procCode_ = this.procCode_ + ' %s';
+      this.displayNames_.push('number or text');
+      this.argumentIds_.push(Blockly.utils.genUid());
+      this.argumentDefaults_.push('');
+      this.updateDisplay_();
+      this.focusLastEditor_();
+    };
+    */
 
     window.ws = this.previewWorkspace;
   }
@@ -135,7 +155,60 @@ class App extends Component {
   }
 
   generatePreview (){
-
+    const xmlParts = [];
+    const colorXML = `colour="${this.state.color1}" secondaryColour="${this.state.color2}"`;
+    let menuIconURI = '';
+    if (this.state.menuIcon) {
+        menuIconURI = this.state.menuIcon;
+    } else if (this.state.blockIconURI) {
+        menuIconURI = this.state.blockIconURI;
+    }
+    const blockJsons = [];
+    const menuIconXML = menuIconURI ?
+        `iconURI="${menuIconURI}"` : '';
+    xmlParts.push(`<xml style="display: none">`);
+    xmlParts.push(`<category name="${this.state.extName}" id="${this.state.extID}" ${colorXML} ${menuIconXML}>`);
+    xmlParts.push.apply(xmlParts, this.state.blocks.map(block => {
+      const extendedOpcode = `${this.state.extID}_${block.opcode}`;
+      const args0 = block.args.map(arg => arg.json);
+      const blockJSON = {
+        type: extendedOpcode,
+        message0: block.msg,
+        args0: args0,
+        inputsInline: true,
+        category: this.state.extName,
+        colour: this.state.color1,
+        colourSecondary: this.state.color2,
+        outputShape: block.outputShape,
+        nextStatement: null,
+        previousStatement: null,
+        extensions: ['scratch_extension']
+      };
+      blockJsons.push(blockJSON);
+      const inputXML = block.args.map(arg => {
+        const inputList = [];
+        const placeholder = arg.placeholder.replace(/[<"&]/, '_');
+        const shadowType = arg.shadowType;
+        const fieldType = arg.fieldType;
+        const defaultValue = arg.defaultValue || '';
+        inputList.push(`<value name="${placeholder}">`);
+        if (shadowType) {
+          inputList.push(`<shadow type="${shadowType}">`);
+          inputList.push(`<field name="${fieldType}">${defaultValue}</field>`);
+          inputList.push('</shadow>');
+        }
+        inputList.push('</value>');
+        
+        return inputList.join('');
+      });
+      let blockXML = `<block type="${extendedOpcode}">${inputXML.join('')}</block>`;
+      return blockXML;
+    }));
+    xmlParts.push('</category>');
+    xmlParts.push(`</xml>`);
+    Blockly.defineBlocksWithJsonArray(blockJsons);
+    console.log("extension", xmlParts);
+    this.previewWorkspace.updateToolbox(xmlParts.join('\n'));
   }
 
   closeMutationModal (){
@@ -168,12 +241,16 @@ class App extends Component {
       this.mutationRoot.setNextStatement(false, null);
       this.mutationRoot.setInputsInline(true);
       if (blockType === 'output'){
+        this.setState({editOutputShape: OUTPUT_SHAPE_ROUND})
         this.mutationRoot.setOutputShape(Blockly.OUTPUT_SHAPE_ROUND);
         this.mutationRoot.setOutput(true, 'Boolean');
       } else {
+        this.setState({editOutputShape: OUTPUT_SHAPE_HEXAGONAL})
         this.mutationRoot.setOutputShape(Blockly.OUTPUT_SHAPE_HEXAGONAL);
         this.mutationRoot.setOutput(true, 'Number');
       }
+    } else {
+      this.setState({editOutputShape: OUTPUT_SHAPE_SQUARE})
     }
     const {x, y} = this.mutationRoot.getRelativeToSurfaceXY();
     const dy = (360 / 2) - (this.mutationRoot.height / 2) - y;
@@ -185,9 +262,13 @@ class App extends Component {
   injectDeclareWorkspace (ref){
     console.log("injectDeclareWorkspace", ref);
     this.blocks = ref;
+    const oldDefaultToolbox = Blockly.Blocks.defaultToolbox;
+    Blockly.Blocks.defaultToolbox = null;
     this.declareWorkspace = Blockly.inject('declare', {
       media: './media/'
     });
+    Blockly.Blocks.defaultToolbox = oldDefaultToolbox;
+    
     const _this = this;
     this.declareWorkspace.addChangeListener(function(evt) {
       // console.log(Object.getPrototypeOf(evt).type, evt);
@@ -210,16 +291,74 @@ class App extends Component {
     ${xml}
     </svg>`;
 
-    this.setState({
-      blocks: [...this.state.blocks, {
-        id: this.state.editBlockID,
-        svg: xml
-      }]
-    });
-
-    console.log("xml", xml);
     var mutation = this.mutationRoot.mutationToDom(true)
     console.log(mutation);
+    const argNames = JSON.parse(mutation.getAttribute('argumentnames'));
+    const args = [];
+    /*
+    for (let name of argNames){
+      args.push({
+        placeholder: name,
+        shadowType: 'text',
+        fieldType: 'TEXT'
+      })
+    }
+    */
+
+    // parse proc code
+    let argCnt = 0;
+    const args0 = [];
+    let proccode = this.mutationRoot.getProcCode();
+    proccode = proccode.split(" ");
+    for (let n=0; n<proccode.length; n++){
+      const p = proccode[n];
+      if (p === '%s'){ // string
+        const argName = argNames[argCnt];
+        const arg = {
+          placeholder: argName,
+          shadowType: 'text',
+          fieldType: 'TEXT',
+          json: {type: "input_value", name: argName}
+        }
+        proccode[n] = `%${argCnt+1}`;
+        args.push(arg);
+        argCnt+=1;
+      } else if (p === '%b'){ // bool
+        const argName = argNames[argCnt];
+        const arg = {
+          placeholder: argName,
+          // shadowType: 'text',
+          // fieldType: 'NUM'
+          check: 'Boolean',
+          json: {type: "input_value", name: argName, check: true}
+        }
+        proccode[n] = `%${argCnt+1}`;
+        args.push(arg);
+        argCnt+=1;
+      } else if (p === '%n'){ // number
+        const argName = argNames[argCnt];
+        const arg = {
+          placeholder: argName,
+          shadowType: 'math_number',
+          fieldType: 'NUM',
+          json: {type: "input_value", name: argName}
+        }
+        proccode[n] = `%${argCnt+1}`;
+        args.push(arg);
+        argCnt+=1;
+      }
+    }
+
+    const msg = proccode.join(" ");
+    this.setState({
+      blocks: [...this.state.blocks, {
+        opcode: this.state.editBlockID,
+        svg: xml,
+        msg,
+        args,
+        outputShape: this.state.editOutputShape,
+      }]
+    });
   }
 
   addLabel (){
@@ -330,11 +469,11 @@ class App extends Component {
                 <Row className="config-row">
                   <Col span={2}>{strings.maincolor}</Col>
                   <Col span={3}>
-                    <div className="color-display" style={{background: this.state.mainColor}} onClick={()=>this.setState({fontColorPick: true})} />
+                    <div className="color-display" style={{background: this.state.color1}} onClick={()=>this.setState({fontColorPick: true})} />
                   </Col>
                   <Col span={2}>{strings.secondcolor}</Col>
                   <Col span={3}>
-                  <div className="color-display" style={{background: this.state.secondColor}} onClick={()=>this.setState({fontColorPick: true})} /> 
+                  <div className="color-display" style={{background: this.state.color2}} onClick={()=>this.setState({fontColorPick: true})} /> 
                   </Col>
                 </Row>
                 <Row className="config-row">
