@@ -21,7 +21,8 @@ let strings = new LocalizedStrings({
     menuIcon: "Menu Icon",
     blockIcon: "Block Icon",
     addLabel: "Add Label",
-    addInput: "Add Input Parameter",
+    addInput: "Add String Parameter",
+    addInputNum: "Add Number Parameter",
     addBool: "Add Boolean Parameter",
     addblock: "Add Blocks",
     addBlockFun: "Add Functional Block",
@@ -37,7 +38,8 @@ let strings = new LocalizedStrings({
     menuIcon: "菜单栏图标",
     blockIcon: "方块图标",
     addLabel: "添加文本",
-    addInput: "添加输入变量",
+    addInput: "添加文本变量",
+    addInputNum: "添加数字变量",
     addBool: "添加布尔变量",
     addblock: "添加方块",
     addBlockFun: "添加函数方块",
@@ -92,7 +94,6 @@ class App extends Component {
       menuIcon: null,
       blockIcon: null,
       editBlockID: 'newblock',
-      editBlockType: 'fun',
       blocks: [],
       menus: [],
       addBlockType: '',
@@ -109,6 +110,7 @@ class App extends Component {
       "addBlockHat",
       "addLabel",
       "addInput",
+      "addInputNum",
       "addBool",
       "applyMutation",
       "injectDeclareWorkspace",
@@ -129,19 +131,7 @@ class App extends Component {
     Blockly.Procedures.externalProcedureDefCallback = function (mutation, cb) {
       console.log("externalProcedureDefCallback");
     }
-    /*
-    // override default custom procedure insert
-    Blockly.ScratchBlocks.ProcedureUtils.addStringNumberExternal = function() {
-      Blockly.WidgetDiv.hide(true);
-      this.procCode_ = this.procCode_ + ' %s';
-      this.displayNames_.push('number or text');
-      this.argumentIds_.push(Blockly.utils.genUid());
-      this.argumentDefaults_.push('');
-      this.updateDisplay_();
-      this.focusLastEditor_();
-    };
-    */
-
+    this.previewWorkspace.getFlyout().setRecyclingEnabled(false);
     window.ws = this.previewWorkspace;
   }
 
@@ -156,6 +146,8 @@ class App extends Component {
 
   generatePreview (){
     const xmlParts = [];
+    this.previewWorkspace.clear();
+
     const colorXML = `colour="${this.state.color1}" secondaryColour="${this.state.color2}"`;
     let menuIconURI = '';
     if (this.state.menuIcon) {
@@ -175,15 +167,25 @@ class App extends Component {
         type: extendedOpcode,
         message0: block.msg,
         args0: args0,
-        inputsInline: true,
         category: this.state.extName,
         colour: this.state.color1,
+        inputsInline: true,
         colourSecondary: this.state.color2,
-        outputShape: block.outputShape,
-        nextStatement: null,
-        previousStatement: null,
         extensions: ['scratch_extension']
       };
+      if (block.type === 'func'){
+        blockJSON.outputShape = OUTPUT_SHAPE_SQUARE;
+        blockJSON.nextStatement = null;
+        blockJSON.previousStatement = null;
+      } else if (block.type === 'output'){
+        blockJSON.outputShape = OUTPUT_SHAPE_ROUND;
+        blockJSON.output = "String";
+        blockJSON.checkboxInFlyout = true;
+      } else if (block.type === 'bool'){
+        blockJSON.output = "Boolean";
+        blockJSON.outputShape = OUTPUT_SHAPE_HEXAGONAL;
+      }
+
       blockJsons.push(blockJSON);
       const inputXML = block.args.map(arg => {
         const inputList = [];
@@ -222,6 +224,22 @@ class App extends Component {
     this.mutationRoot.setDeletable(false);
     this.mutationRoot.contextMenu = false;
 
+    // override default custom procedure insert
+    this.mutationRoot.addStringNumberExternal = function(isNum) {
+      Blockly.WidgetDiv.hide(true);
+      if (isNum){
+        this.procCode_ = this.procCode_ + ' %n';
+        this.displayNames_.push('X');
+      } else {
+        this.procCode_ = this.procCode_ + ' %s';
+        this.displayNames_.push('TXT');
+      }
+      this.argumentIds_.push(Blockly.utils.genUid());
+      this.argumentDefaults_.push('');
+      this.updateDisplay_();
+      this.focusLastEditor_();
+    };
+
     // this.mutationRoot.domToMutation(this.props.mutator);
     var mutationText = '<xml>' +
       '<mutation' +
@@ -241,16 +259,14 @@ class App extends Component {
       this.mutationRoot.setNextStatement(false, null);
       this.mutationRoot.setInputsInline(true);
       if (blockType === 'output'){
-        this.setState({editOutputShape: OUTPUT_SHAPE_ROUND})
         this.mutationRoot.setOutputShape(Blockly.OUTPUT_SHAPE_ROUND);
         this.mutationRoot.setOutput(true, 'Boolean');
       } else {
-        this.setState({editOutputShape: OUTPUT_SHAPE_HEXAGONAL})
         this.mutationRoot.setOutputShape(Blockly.OUTPUT_SHAPE_HEXAGONAL);
         this.mutationRoot.setOutput(true, 'Number');
       }
     } else {
-      this.setState({editOutputShape: OUTPUT_SHAPE_SQUARE})
+
     }
     const {x, y} = this.mutationRoot.getRelativeToSurfaceXY();
     const dy = (360 / 2) - (this.mutationRoot.height / 2) - y;
@@ -295,15 +311,6 @@ class App extends Component {
     console.log(mutation);
     const argNames = JSON.parse(mutation.getAttribute('argumentnames'));
     const args = [];
-    /*
-    for (let name of argNames){
-      args.push({
-        placeholder: name,
-        shadowType: 'text',
-        fieldType: 'TEXT'
-      })
-    }
-    */
 
     // parse proc code
     let argCnt = 0;
@@ -330,7 +337,7 @@ class App extends Component {
           // shadowType: 'text',
           // fieldType: 'NUM'
           check: 'Boolean',
-          json: {type: "input_value", name: argName, check: true}
+          json: {type: "input_value", name: argName, check: "Boolean"}
         }
         proccode[n] = `%${argCnt+1}`;
         args.push(arg);
@@ -350,14 +357,18 @@ class App extends Component {
     }
 
     const msg = proccode.join(" ");
+    const newBlock = {
+      opcode: this.state.editBlockID,
+      svg: xml,
+      msg,
+      args,
+      type: this.state.addBlockType
+    };
+    const blocks = [...this.state.blocks].filter(blk => blk.opcode !== this.state.editBlockID);;
+    blocks.push(newBlock);
+    
     this.setState({
-      blocks: [...this.state.blocks, {
-        opcode: this.state.editBlockID,
-        svg: xml,
-        msg,
-        args,
-        outputShape: this.state.editOutputShape,
-      }]
+      blocks: blocks
     });
   }
 
@@ -367,12 +378,16 @@ class App extends Component {
   addInput (){
     this.mutationRoot.addStringNumberExternal();
   }
+  addInputNum (){
+    this.mutationRoot.addStringNumberExternal(true);
+  }
   addBool (){
     this.mutationRoot.addBooleanExternal();
   }
   addBlockFun (){
     this.setState({
-      showMutation: true
+      showMutation: true,
+      addBlockType: 'func',
     });
     if (this.declareWorkspace){
       this.declareWorkspace.clear();
@@ -407,9 +422,13 @@ class App extends Component {
 
   addBlockHat (){
     this.setState({
+      addBlockType: 'hat',
       showMutation: true
     });
-    if (this.declareWorkspace) this.declareWorkspace.clear();
+    if (this.declareWorkspace){
+      this.declareWorkspace.clear();
+      this.initEmptyBlock('hat');
+    }
 
   }
 
@@ -535,6 +554,7 @@ class App extends Component {
           <div className="btn-wrap">
             <Button onClick={this.addLabel}>{strings.addLabel}</Button>
             <Button onClick={this.addInput}>{strings.addInput}</Button>
+            <Button onClick={this.addInputNum}>{strings.addInputNum}</Button>
             <Button onClick={this.addBool}>{strings.addBool}</Button>
           </div>
         </Modal>
