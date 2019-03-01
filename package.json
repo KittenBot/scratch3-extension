@@ -2,6 +2,7 @@
   "name": "s3ext-scaffold",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://kittenbot.github.io/scratch3-extension",
   "dependencies": {
     "antd": "^3.13.6",
     "lodash.bindall": "^4.4.0",
