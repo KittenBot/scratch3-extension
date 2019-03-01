@@ -118,6 +118,17 @@ class App extends Component {
     this.mutationRoot.contextMenu = false;
 
     // this.mutationRoot.domToMutation(this.props.mutator);
+    var mutationText = '<xml>' +
+      '<mutation' +
+      ' proccode="' + Blockly.Msg['PROCEDURE_DEFAULT_NAME'] + '"' +
+      ' argumentids="[]"' +
+      ' argumentnames="[]"' +
+      ' argumentdefaults="[]"' +
+      ' warp="false">' +
+      '</mutation>' +
+      '</xml>';
+    const dom = Blockly.Xml.textToDom(mutationText).firstChild;
+    this.mutationRoot.domToMutation(dom);
     this.mutationRoot.initSvg();
     this.mutationRoot.render();
   }
