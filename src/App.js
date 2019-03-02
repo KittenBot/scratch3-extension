@@ -71,6 +71,13 @@ const OUTPUT_SHAPE_HEXAGONAL = 1;
 const OUTPUT_SHAPE_ROUND = 2;
 const OUTPUT_SHAPE_SQUARE = 3;
 
+const BlockTypeMap = {
+  func: "COMMAND",
+  output: "REPORTER",
+  bool: "BOOLEAN",
+  hat: "HAT"
+}
+
 class App extends Component {
   constructor (props){
     super(props);
@@ -110,6 +117,7 @@ class App extends Component {
       "deleteBlock",
       "saveToJson",
       "loadFromJson",
+      "exportJs"
     ]);
 
     this.blockColumn = [{
@@ -340,7 +348,6 @@ class App extends Component {
   }
 
   injectDeclareWorkspace (ref){
-    console.log("injectDeclareWorkspace", ref);
     this.blocks = ref;
     const oldDefaultToolbox = Blockly.Blocks.defaultToolbox;
     Blockly.Blocks.defaultToolbox = null;
@@ -353,6 +360,7 @@ class App extends Component {
     this.declareWorkspace.addChangeListener(function(evt) {
       // console.log(Object.getPrototypeOf(evt).type, evt);
       if (_this.mutationRoot) {
+        // todo: blockly turn %n to %s in updateDeclarationProcCode_
         _this.mutationRoot.onChangeFn();
       }
     });
@@ -383,6 +391,7 @@ class App extends Component {
       if (p === '%s'){ // string
         const argName = argNames[argCnt];
         const arg = {
+          argType: 'STRING',
           placeholder: argName,
           shadowType: 'text',
           fieldType: 'TEXT',
@@ -394,6 +403,7 @@ class App extends Component {
       } else if (p === '%b'){ // bool
         const argName = argNames[argCnt];
         const arg = {
+          argType: 'BOOLEAN',
           placeholder: argName,
           // shadowType: 'text',
           // fieldType: 'NUM'
@@ -406,6 +416,7 @@ class App extends Component {
       } else if (p === '%n'){ // number
         const argName = argNames[argCnt];
         const arg = {
+          argType: 'NUMBER',
           placeholder: argName,
           shadowType: 'math_number',
           fieldType: 'NUM',
@@ -514,7 +525,7 @@ class App extends Component {
   }
 
   saveToJson (){
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, 2));
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href",     dataStr);
     downloadAnchorNode.setAttribute("download", this.state.extID + ".json");
@@ -537,6 +548,70 @@ class App extends Component {
       }
       reader.readAsText(file);
     }
+  }
+
+  exportJs (){
+    const className = this.state.extID.toUpperCase();
+    const blockFunctions = [];
+    const blocksInfo = [];
+
+    for (const block of this.state.blocks){
+      let txt = block.msg;
+      let argIndex = 1;
+      const blockCode = {
+        opcode: `'${block.opcode}'`,
+        blockType: `BlockType.${BlockTypeMap[block.type]}`
+      };
+      if (block.args.length){
+        blockCode.arguments = {};
+        for (let n=0;n<block.args.length;n++){
+          const arg = block.args[n];
+          txt = txt.replace(`%${argIndex}`, `[${arg.json.name}]`);
+          // todo: fix missing %n define in custom procedure
+          blockCode.arguments[`${arg.json.name}`] = {
+            type: `ArgumentType.${arg.argType}`
+          }
+          argIndex+=1;
+        }
+      }
+      blockCode.text = `'${txt}'`;
+      blocksInfo.push(blockCode)
+      blockFunctions.push(`  ${block.opcode}(args){
+    
+  }`)
+    }
+
+    let blkInfoCode = JSON.stringify(blocksInfo, null, 2);
+    blkInfoCode = blkInfoCode.replace(/"/g, '');
+    blkInfoCode = blkInfoCode.replace(/\n/g, '\n      ')
+
+
+    const indexJS = `
+// create by scratch3-extension generator
+const ArgumentType = Scratch.ArgumentType;
+const BlockType = Scratch.BlockType;
+const formatMessage = Scratch.formatMessage;
+const log = Scratch.log;
+
+class ${className}{
+  constructor (runtime){
+    this.runtime = runtime;
+  }
+
+  getInfo (){
+    return {
+      id: '${this.state.extID}',
+      name: '${this.state.extName}',
+      blocks: ${blkInfoCode}
+    }
+  }
+${blockFunctions.join('\n')}
+}
+
+module.exports = ${className};
+`;
+    console.log(indexJS);
+
   }
 
   render() {
@@ -654,7 +729,7 @@ class App extends Component {
                     <Button>Open</Button>
                   </Upload>
                   
-                  <Button type="primary">Export index.js</Button>
+                  <Button type="primary" onClick={this.exportJs}>Export index.js</Button>
                 </Row>
               </Col>
             </Row>
