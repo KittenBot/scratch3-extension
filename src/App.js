@@ -585,6 +585,8 @@ class App extends Component {
     blkInfoCode = blkInfoCode.replace(/"/g, '');
     blkInfoCode = blkInfoCode.replace(/\n/g, '\n      ')
 
+    const menuIconURI = this.state.menuIcon ? `"${this.state.menuIcon}"` : 'null';
+    const blockIconURI = this.state.blockIcon ? `"${this.state.blockIcon}"` : 'null';
 
     const indexJS = `
 // create by scratch3-extension generator
@@ -592,6 +594,9 @@ const ArgumentType = Scratch.ArgumentType;
 const BlockType = Scratch.BlockType;
 const formatMessage = Scratch.formatMessage;
 const log = Scratch.log;
+
+const menuIconURI = ${menuIconURI};
+const blockIconURI = ${blockIconURI};
 
 class ${className}{
   constructor (runtime){
@@ -602,6 +607,10 @@ class ${className}{
     return {
       id: '${this.state.extID}',
       name: '${this.state.extName}',
+      color1: '${this.state.color1}',
+      color2: '${this.state.color2}',
+      menuIconURI: menuIconURI,
+      blockIconURI: blockIconURI,
       blocks: ${blkInfoCode}
     }
   }
