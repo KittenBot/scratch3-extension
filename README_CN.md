@@ -62,7 +62,7 @@
 
 ### Step8
 
-在改文件夹下面建立一个名为`extension.json`的文件,里面放入如下的内容:
+在该文件夹下面建立一个名为`extension.json`的文件,里面放入如下的内容:
 
 	{
 	    "name": "Say Hello",
@@ -70,7 +70,7 @@
 	    "image": "logo.png"
 	}
 
-之后找一张你喜欢的图片作为插件的主图片,命名为`logo.png`,并放入改文件夹下. 最后我们的`sayhello`文件夹下有如下三个文件.
+之后找一张你喜欢的图片作为插件的主图片,命名为`logo.png`,并放入该文件夹下. 最后我们的`sayhello`文件夹下有如下三个文件.
 
 ![image](https://user-images.githubusercontent.com/3390845/53679853-7d71f400-3d0d-11e9-872a-b20a57d59115.png)
 
