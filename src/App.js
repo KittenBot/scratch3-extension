@@ -551,7 +551,7 @@ class App extends Component {
   }
 
   exportJs (){
-    const className = this.state.extID.toUpperCase();
+    const className = this.state.extID;
     const blockFunctions = [];
     const blocksInfo = [];
 
@@ -611,7 +611,13 @@ ${blockFunctions.join('\n')}
 module.exports = ${className};
 `;
     console.log(indexJS);
-
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(indexJS);
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", "index.js");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   }
 
   render() {
