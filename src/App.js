@@ -131,7 +131,7 @@ class App extends Component {
       dataIndex: 'svg',
       key: 'svg',
       render: (text, record) => (
-        <img src={`data:image/svg+xml;charset=utf-8,${text}`} />
+        <img src={`data:image/svg+xml;utf8,${text}`} />
       )
     }, {
       title: 'Action',
@@ -379,7 +379,7 @@ class App extends Component {
     svg.removeAttribute('transform');
     let xml = (new XMLSerializer).serializeToString(svg);
     xml = `<svg id="src" xmlns="http://www.w3.org/2000/svg" width="${bbox.width}" height="${bbox.height}" >
-    ${xml}
+    ${encodeURIComponent(xml)}
     </svg>`;
 
     const mutation = this.mutationRoot.mutationToDom(true)
