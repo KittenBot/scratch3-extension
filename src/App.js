@@ -254,6 +254,10 @@ class App extends Component {
       } else if (block.type === 'bool'){
         blockJSON.output = "Boolean";
         blockJSON.outputShape = OUTPUT_SHAPE_HEXAGONAL;
+      } else if (block.type === 'hat'){
+        blockJSON.outputShape = OUTPUT_SHAPE_SQUARE;
+        blockJSON.nextStatement = null;
+        blockJSON.previousStatement = undefined; // hack to hat module
       }
 
       blockJsons.push(blockJSON);
@@ -337,8 +341,10 @@ class App extends Component {
         this.mutationRoot.setOutputShape(Blockly.OUTPUT_SHAPE_HEXAGONAL);
         this.mutationRoot.setOutput(true, 'Number');
       }
-    } else {
-
+    } else if (blockType === 'hat') {
+      this.mutationRoot.setPreviousStatement(undefined, null);
+      this.mutationRoot.setNextStatement(true, null);
+      this.mutationRoot.setInputsInline(true);
     }
     const {x, y} = this.mutationRoot.getRelativeToSurfaceXY();
     const dy = (360 / 2) - (this.mutationRoot.height / 2) - y;
