@@ -9,7 +9,7 @@ class BlockScriptEditor extends Component {
     constructor (props){
         super(props);
         this.state = {
-            retPromise: `  return this.write(\`ABC\\n\`);`
+            retPromise: `  return this.write(\`M0 \\n\`);`
         };
     }
 
@@ -42,8 +42,40 @@ class BlockScriptEditor extends Component {
 }
 
 
+class CodePreview extends Component {
+    constructor (props){
+        super(props);
+        this.state = {
+
+        };
+    }
+
+    render (){
+        const {
+            code,
+            onClose,
+        } = this.props;
+
+        return (<Modal
+            title="index.js"
+            visible={Boolean(code)}
+            onCancel={onClose}
+            width={840}
+        >
+            <MonacoEditor 
+                width="800"
+                height="600"
+                language="javascript"
+                theme="vs-dark"
+                value={code}
+            />
+        </Modal>)
+    }
+}
+
 
 
 export {
-    BlockScriptEditor
+    BlockScriptEditor,
+    CodePreview
 }

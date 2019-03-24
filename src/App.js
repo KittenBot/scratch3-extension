@@ -1,14 +1,18 @@
 import bindAll from 'lodash.bindall';
 import LocalizedStrings from 'react-localization';
-import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, Popconfirm, Input, Modal, Upload, Tooltip } from 'antd';
+import { Checkbox, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, Popconfirm, Input, Modal, Upload, Tooltip } from 'antd';
 import React, { Component } from 'react';
 import Blockly from 'scratch-blocks';
 
 import { SketchPicker } from 'react-color';
 import logo from './logo.svg';
 import './App.css';
-import {BlockScriptEditor} from './BlockEditor';
+import {BlockScriptEditor, CodePreview} from './BlockEditor';
 import { string } from 'postcss-selector-parser';
+
+import CodeBuilder from './CodeBuilder';
+
+const builder = new CodeBuilder();
 
 const { SubMenu } = Menu;
 const { Header, Content, Footer, Sider } = Layout;
@@ -72,12 +76,11 @@ const OUTPUT_SHAPE_HEXAGONAL = 1;
 const OUTPUT_SHAPE_ROUND = 2;
 const OUTPUT_SHAPE_SQUARE = 3;
 
-const BlockTypeMap = {
-  func: "COMMAND",
-  output: "REPORTER",
-  bool: "BOOLEAN",
-  hat: "HAT"
-}
+
+const extOption = [
+  { label: 'Comm', value: 'comm' },
+  { label: 'Generator', value: 'gen' }
+];
 
 class App extends Component {
   constructor (props){
@@ -90,6 +93,7 @@ class App extends Component {
       color2Pick: false,
       color1: '#0FBD8C',
       color2: '#0DA57A',
+      indexJS: null,
       menuIcon: null,
       blockIcon: null,
       editBlockID: 'newblock',
@@ -98,6 +102,8 @@ class App extends Component {
       addBlockType: '',
       showMutation: false,
       blockScript: null,
+      isShowCodePreview: false
+      
     }
     bindAll(this, [
       "uploadMenuIcon",
@@ -118,9 +124,12 @@ class App extends Component {
       "editBlock",
       "deleteBlock",
       "saveToJson",
+      "generateIndexJS",
       "loadFromJson",
       "exportJs",
-      "editBlockScript"
+      "showCodePreview",
+      "editBlockScript",
+      "onExtoptionChange"
     ]);
 
     this.blockColumn = [{
@@ -185,6 +194,10 @@ class App extends Component {
     }
     this.previewWorkspace.getFlyout().setRecyclingEnabled(false);
     window.ws = this.previewWorkspace;
+  }
+
+  onExtoptionChange (opt){
+    console.log("ext opt", opt)
   }
 
   uploadMenuIcon (file){
@@ -598,75 +611,41 @@ class App extends Component {
     }
   }
 
+  generateIndexJS (){
+    const option = {
+      className: this.state.extID,
+      extID: this.state.extID,
+      extName: this.state.extName,
+      color1: this.state.color1,
+      color2: this.state.color2,
+      menuIconURI: this.state.menuIcon ? `"${this.state.menuIcon}"` : 'null',
+      blockIconURI: this.state.blockIcon ? `"${this.state.blockIcon}"` : 'null',
+    }
+    const indexJS = builder.buildJsCode(option, this.state.blocks);
+    return indexJS;
+  }
+
+  showCodePreview (){
+    let indexJS = this.state.indexJS;
+    if (!indexJS){
+      indexJS = this.generateIndexJS();
+      this.setState({
+        indexJS
+      }, () => this.setState({isShowCodePreview: true}));
+    } else {
+
+    }
+  }
+
   exportJs (){
-    const className = this.state.extID;
-    const blockFunctions = [];
-    const blocksInfo = [];
-
-    for (const block of this.state.blocks){
-      let txt = block.msg;
-      let argIndex = 1;
-      const blockCode = {
-        opcode: `'${block.opcode}'`,
-        blockType: `BlockType.${BlockTypeMap[block.type]}`
-      };
-      if (block.args.length){
-        blockCode.arguments = {};
-        for (let n=0;n<block.args.length;n++){
-          const arg = block.args[n];
-          txt = txt.replace(`%${argIndex}`, `[${arg.json.name}]`);
-          // todo: fix missing %n define in custom procedure
-          blockCode.arguments[`${arg.json.name}`] = {
-            type: `ArgumentType.${arg.argType}`
-          }
-          argIndex+=1;
-        }
-      }
-      blockCode.text = `'${txt}'`;
-      blocksInfo.push(blockCode)
-      blockFunctions.push(`  ${block.opcode}(args){
-    
-  }`)
+    let indexJS = this.state.indexJS;
+    if (!indexJS){
+      indexJS = this.generateIndexJS();
+      this.setState({
+        indexJS
+      });
     }
 
-    let blkInfoCode = JSON.stringify(blocksInfo, null, 2);
-    blkInfoCode = blkInfoCode.replace(/"/g, '');
-    blkInfoCode = blkInfoCode.replace(/\n/g, '\n      ')
-
-    const menuIconURI = this.state.menuIcon ? `"${this.state.menuIcon}"` : 'null';
-    const blockIconURI = this.state.blockIcon ? `"${this.state.blockIcon}"` : 'null';
-
-    const indexJS = `
-// create by scratch3-extension generator
-const ArgumentType = Scratch.ArgumentType;
-const BlockType = Scratch.BlockType;
-const formatMessage = Scratch.formatMessage;
-const log = Scratch.log;
-
-const menuIconURI = ${menuIconURI};
-const blockIconURI = ${blockIconURI};
-
-class ${className}{
-  constructor (runtime){
-    this.runtime = runtime;
-  }
-
-  getInfo (){
-    return {
-      id: '${this.state.extID}',
-      name: '${this.state.extName}',
-      color1: '${this.state.color1}',
-      color2: '${this.state.color2}',
-      menuIconURI: menuIconURI,
-      blockIconURI: blockIconURI,
-      blocks: ${blkInfoCode}
-    }
-  }
-${blockFunctions.join('\n')}
-}
-
-module.exports = ${className};
-`;
     console.log(indexJS);
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(indexJS);
     const downloadAnchorNode = document.createElement('a');
@@ -740,6 +719,9 @@ module.exports = ${className};
                       </div> : null }
                   </Col>
                 </Row>
+                <Row>
+                  <Checkbox.Group options={extOption} defaultValue={[]} onChange={this.onExtoptionChange} />
+                </Row>
                 <Divider>{strings.extimg}</Divider>
                 <Row className="config-row">
                   <Col span={4}>
@@ -791,7 +773,7 @@ module.exports = ${className};
                   >
                     <Button>Open</Button>
                   </Upload>
-                  
+                  <Button type="primary" onClick={this.showCodePreview}>Code Prview</Button>
                   <Button type="primary" onClick={this.exportJs}>Export index.js</Button>
                 </Row>
               </Col>
@@ -828,7 +810,10 @@ module.exports = ${className};
         {this.state.blockScript ? <BlockScriptEditor
           blockScript={this.state.blockScript}
           onClose={() => this.setState({blockScript: null})}
-
+        /> : null}
+        {this.state.isShowCodePreview ? <CodePreview
+          code={this.state.indexJS}
+          onClose={() => this.setState({isShowCodePreview: false})}
         /> : null}
       </Layout>
     );
