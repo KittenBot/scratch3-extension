@@ -1,13 +1,13 @@
 import bindAll from 'lodash.bindall';
 import LocalizedStrings from 'react-localization';
-import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, Popconfirm, Input, Modal, Upload } from 'antd';
+import { Alert, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, Popconfirm, Input, Modal, Upload, Tooltip } from 'antd';
 import React, { Component } from 'react';
 import Blockly from 'scratch-blocks';
 
 import { SketchPicker } from 'react-color';
 import logo from './logo.svg';
 import './App.css';
-import {BlockOprator} from './BlockEditor';
+import {BlockScriptEditor} from './BlockEditor';
 import { string } from 'postcss-selector-parser';
 
 const { SubMenu } = Menu;
@@ -97,7 +97,7 @@ class App extends Component {
       menus: [],
       addBlockType: '',
       showMutation: false,
-      editBlockScript: true,
+      blockScript: null,
     }
     bindAll(this, [
       "uploadMenuIcon",
@@ -119,7 +119,8 @@ class App extends Component {
       "deleteBlock",
       "saveToJson",
       "loadFromJson",
-      "exportJs"
+      "exportJs",
+      "editBlockScript"
     ]);
 
     this.blockColumn = [{
@@ -140,8 +141,10 @@ class App extends Component {
       key: 'blockop',
       render: (text, record) => (
         <span>
-          <a href="#" onClick={() => this.editBlock(record.opcode)} >
-            <Icon type="experiment" theme="twoTone" />
+          <a href="#" onClick={() => this.editBlockScript(record.opcode)} >
+            <Tooltip title="Block Script">
+              <Icon type="code" theme="twoTone" />
+            </Tooltip>
           </a>
           <Divider type="vertical" />
           <a href="#" onClick={() => this.editBlock(record.opcode)} >
@@ -550,6 +553,25 @@ class App extends Component {
     this.setState({blocks});
   }
 
+  editBlockScript (opcode){
+    const block = this.state.blocks.filter(blk => blk.opcode === opcode);
+    if (block && block.length == 1){
+      const blk = block[0];
+      let script = blk.script;
+      if (!script){
+        script = blk.args.reduce((sc, arg) => {
+          return sc += `  const ${arg.placeholder} = args.${arg.placeholder};\n`
+        }, "")
+      }
+      this.setState({
+        blockScript: {
+          opcode: blk.opcode,
+          script 
+        }
+      });
+    }
+  }
+
   saveToJson (){
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, null, 2));
     const downloadAnchorNode = document.createElement('a');
@@ -803,9 +825,11 @@ module.exports = ${className};
             </Col>
           </Row>
         </Modal>
-        <BlockOprator
-          visible={this.state.editBlockScript}
-        />
+        {this.state.blockScript ? <BlockScriptEditor
+          blockScript={this.state.blockScript}
+          onClose={() => this.setState({blockScript: null})}
+
+        /> : null}
       </Layout>
     );
   }

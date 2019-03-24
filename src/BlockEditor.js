@@ -5,33 +5,37 @@ import React, { Component } from 'react';
 import MonacoEditor from 'react-monaco-editor';
 
 
-class BlockOprator extends Component {
+class BlockScriptEditor extends Component {
     constructor (props){
         super(props);
-        
+        this.state = {
+            retPromise: `  return this.write(\`ABC\\n\`);`
+        };
     }
 
 
     render (){
         const {
-            visible,
             applyBlockOp,
-            close,
+            onClose,
             blockScript,
             
         } = this.props;
+        const code = `${blockScript.opcode} (args, util){\n${blockScript.script}\n${this.state.retPromise}\n}\n`
 
         return (<Modal
-            title="Modify Block"
-            visible={visible}
+            title="Block Script"
+            visible={Boolean(blockScript)}
             onOk={applyBlockOp}
-            onCancel={close}
+            onCancel={onClose}
+            width={640}
         >
             <MonacoEditor 
-                width="800"
-                height="600"
+                width="600"
+                height="400"
                 language="javascript"
                 theme="vs-dark"
+                value={code}
             />
         </Modal>)
     }
@@ -41,5 +45,5 @@ class BlockOprator extends Component {
 
 
 export {
-    BlockOprator
+    BlockScriptEditor
 }
