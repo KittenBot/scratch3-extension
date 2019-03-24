@@ -5,14 +5,12 @@ import React, { Component } from 'react';
 import Blockly from 'scratch-blocks';
 
 import { SketchPicker } from 'react-color';
-import logo from './logo.svg';
+import logo from './s3ext.png';
 import './App.css';
 import {BlockScriptEditor, CodePreview} from './BlockEditor';
 import { string } from 'postcss-selector-parser';
 
-import CodeBuilder from './CodeBuilder';
-
-const builder = new CodeBuilder();
+import {buildJsCode, buildBlockOp} from './CodeBuilder';
 
 const { SubMenu } = Menu;
 const { Header, Content, Footer, Sider } = Layout;
@@ -127,7 +125,6 @@ class App extends Component {
       "generateIndexJS",
       "loadFromJson",
       "exportJs",
-      "showCodePreview",
       "editBlockScript",
       "onExtoptionChange"
     ]);
@@ -570,16 +567,16 @@ class App extends Component {
     const block = this.state.blocks.filter(blk => blk.opcode === opcode);
     if (block && block.length == 1){
       const blk = block[0];
-      let script = blk.script;
-      if (!script){
-        script = blk.args.reduce((sc, arg) => {
-          return sc += `  const ${arg.placeholder} = args.${arg.placeholder};\n`
-        }, "")
+      if (!blk.script){
+        blk.script = buildBlockOp(blk.opcode, blk.args);
       }
       this.setState({
         blockScript: {
           opcode: blk.opcode,
-          script 
+          script: blk.script,
+          applyScript: (script) => {
+            blk.script = script
+          }
         }
       });
     }
@@ -621,39 +618,14 @@ class App extends Component {
       menuIconURI: this.state.menuIcon ? `"${this.state.menuIcon}"` : 'null',
       blockIconURI: this.state.blockIcon ? `"${this.state.blockIcon}"` : 'null',
     }
-    const indexJS = builder.buildJsCode(option, this.state.blocks);
+    const indexJS = buildJsCode(option, this.state.blocks);
     return indexJS;
   }
 
-  showCodePreview (){
-    let indexJS = this.state.indexJS;
-    if (!indexJS){
-      indexJS = this.generateIndexJS();
-      this.setState({
-        indexJS
-      }, () => this.setState({isShowCodePreview: true}));
-    } else {
-
-    }
-  }
-
   exportJs (){
-    let indexJS = this.state.indexJS;
-    if (!indexJS){
-      indexJS = this.generateIndexJS();
-      this.setState({
-        indexJS
-      });
-    }
-
-    console.log(indexJS);
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(indexJS);
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href",     dataStr);
-    downloadAnchorNode.setAttribute("download", "index.js");
-    document.body.appendChild(downloadAnchorNode); // required for firefox
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    this.setState({
+      indexJS: this.generateIndexJS()
+    }, () => this.setState({isShowCodePreview: true}));    
   }
 
   render() {
@@ -664,7 +636,9 @@ class App extends Component {
           collapsible
           collapsed={this.state.collapsed}
         >
-          <div className="logo" />
+          <div className="logo" >
+            <img src={logo} style={{height: 40}}/>
+          </div>
           <Menu theme="dark" mode="inline" defaultSelectedKeys={['1']}>
             <Menu.Item key="1">
               <Icon type="plus" />
@@ -773,7 +747,6 @@ class App extends Component {
                   >
                     <Button>Open</Button>
                   </Upload>
-                  <Button type="primary" onClick={this.showCodePreview}>Code Prview</Button>
                   <Button type="primary" onClick={this.exportJs}>Export index.js</Button>
                 </Row>
               </Col>

@@ -1,4 +1,3 @@
-import bindAll from 'lodash.bindall';
 
 const BlockTypeMap = {
   func: "COMMAND",
@@ -7,9 +6,16 @@ const BlockTypeMap = {
   hat: "HAT"
 }
 
-class CodeBuilder {
 
-  buildJsCode (opt, blocks){
+const buildBlockOp = function(opcode, args){
+  const argDefine = args.reduce((sc, arg) => {
+    return sc += `  const ${arg.placeholder} = args.${arg.placeholder};\n`
+  }, "")
+  const code = `${opcode} (args, util){\n${argDefine}\n  return this.write(\`M0 \\n\`);\n}\n`
+  return code;
+}
+
+const buildJsCode = function(opt, blocks){
     const blockFunctions = [];
     const blocksInfo = [];
 
@@ -34,9 +40,8 @@ class CodeBuilder {
       }
       blockCode.text = `'${txt}'`;
       blocksInfo.push(blockCode)
-      blockFunctions.push(`  ${block.opcode}(args){
-    
-  }`)
+      const script = block.script || buildBlockOp(block.opcode, block.args);
+      blockFunctions.push(script)
     }
     
     let blkInfoCode = JSON.stringify(blocksInfo, null, 2);
@@ -65,6 +70,9 @@ class ${opt.className}{
     this.onmessage = this.onmessage.bind(this);
     this.onclose = this.onclose.bind(this);
     this.write = this.write.bind(this);
+    // string op
+    this.decoder = new TextDecoder();
+    this.lineBuffer = '';
   }
 
   onclose (){
@@ -86,7 +94,18 @@ class ${opt.className}{
   }
 
   onmessage (data){
-
+    const dataStr = this.decoder.decode(data);
+    this.lineBuffer += dataStr;
+    if (this.lineBuffer.indexOf('\\n') !== -1){
+      const lines = this.lineBuffer.split('\\n');
+      this.lineBuffer = lines.pop();
+      for (const l of lines){
+        if (this.reporter){
+          const {parser, resolve} = this.reporter;
+          resolve(parser(l));
+        };
+      }
+    }
   }
 
   scan (){
@@ -112,10 +131,13 @@ ${blockFunctions.join('\n')}
 module.exports = ${opt.className};
 `;
 
-    return indexJS;
-  }
-
-
+  return indexJS;
 }
 
-export default CodeBuilder;
+
+
+export {
+  buildJsCode,
+  buildBlockOp
+
+};

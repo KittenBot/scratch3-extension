@@ -3,30 +3,40 @@ import LocalizedStrings from 'react-localization';
 import { Modal } from 'antd';
 import React, { Component } from 'react';
 import MonacoEditor from 'react-monaco-editor';
+import {buildBlockOp} from './CodeBuilder';
 
 
 class BlockScriptEditor extends Component {
     constructor (props){
         super(props);
+        bindAll(this, [
+            'onChange',
+            'onApply'
+        ])
         this.state = {
-            retPromise: `  return this.write(\`M0 \\n\`);`
+            script: this.props.blockScript.script
         };
     }
 
-
+    onChange(newValue, e) {
+        this.setState({
+            script: newValue
+        })
+    }
+    onApply (){
+        this.props.blockScript.applyScript(this.state.script);
+        this.props.onClose();
+    }
     render (){
         const {
-            applyBlockOp,
             onClose,
             blockScript,
-            
         } = this.props;
-        const code = `${blockScript.opcode} (args, util){\n${blockScript.script}\n${this.state.retPromise}\n}\n`
 
         return (<Modal
             title="Block Script"
             visible={Boolean(blockScript)}
-            onOk={applyBlockOp}
+            onOk={this.onApply}
             onCancel={onClose}
             width={640}
         >
@@ -35,7 +45,8 @@ class BlockScriptEditor extends Component {
                 height="400"
                 language="javascript"
                 theme="vs-dark"
-                value={code}
+                value={this.state.script}
+                onChange={this.onChange}
             />
         </Modal>)
     }
@@ -45,11 +56,29 @@ class BlockScriptEditor extends Component {
 class CodePreview extends Component {
     constructor (props){
         super(props);
+        bindAll(this, [
+            'onChange',
+            'downloadIndexjs'
+        ])
         this.state = {
-
+            script: this.props.code
         };
     }
 
+    downloadIndexjs (indexJS){
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(indexJS);
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href",     dataStr);
+        downloadAnchorNode.setAttribute("download", "index.js");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+    onChange(newValue, e) {
+        this.setState({
+            script: newValue
+        })
+    }
     render (){
         const {
             code,
@@ -60,6 +89,7 @@ class CodePreview extends Component {
             title="index.js"
             visible={Boolean(code)}
             onCancel={onClose}
+            onOk={this.downloadIndexjs}
             width={840}
         >
             <MonacoEditor 
@@ -67,7 +97,8 @@ class CodePreview extends Component {
                 height="600"
                 language="javascript"
                 theme="vs-dark"
-                value={code}
+                value={this.state.script}
+                onChange={this.onChange}
             />
         </Modal>)
     }
