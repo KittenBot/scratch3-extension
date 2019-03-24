@@ -65,8 +65,8 @@ class CodePreview extends Component {
         };
     }
 
-    downloadIndexjs (indexJS){
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(indexJS);
+    downloadIndexjs (){
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(this.state.script);
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href",     dataStr);
         downloadAnchorNode.setAttribute("download", "index.js");

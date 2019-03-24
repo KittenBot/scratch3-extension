@@ -149,17 +149,10 @@ class App extends Component {
         <span>
           <a href="#" onClick={() => this.editBlockScript(record.opcode)} >
             <Tooltip title="Block Script">
-              <Icon type="code" theme="twoTone" />
+              <Icon type="code" theme="twoTone" style={{fontSize: 24}}/>
             </Tooltip>
           </a>
           <Divider type="vertical" />
-          <a href="#" onClick={() => this.editBlock(record.opcode)} >
-            <Icon type="code" theme="twoTone" />
-          </a>
-          <Divider type="vertical" />
-          <a href="#" onClick={() => this.editBlock(record.opcode)} >
-            <Icon type="code" theme="twoTone" />
-          </a>
         </span>
       )
     }, {
