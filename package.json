@@ -10,13 +10,14 @@
     "react-color": "^2.17.0",
     "react-dom": "^16.8.3",
     "react-localization": "^1.0.13",
+    "react-monaco-editor": "^0.25.1",
     "react-scripts": "2.1.5",
     "scratch-blocks": "0.1.0-prerelease.1549990124"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject",
     "deploy": "gh-pages -d build"
   },
@@ -30,6 +31,8 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "gh-pages": "^2.0.1"
+    "gh-pages": "^2.0.1",
+    "monaco-editor-webpack-plugin": "^1.7.0",
+    "react-app-rewired": "^2.1.1"
   }
 }

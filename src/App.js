@@ -7,6 +7,7 @@ import Blockly from 'scratch-blocks';
 import { SketchPicker } from 'react-color';
 import logo from './logo.svg';
 import './App.css';
+import {BlockOprator} from './BlockEditor';
 import { string } from 'postcss-selector-parser';
 
 const { SubMenu } = Menu;
@@ -95,7 +96,8 @@ class App extends Component {
       blocks: [],
       menus: [],
       addBlockType: '',
-      showMutation: false
+      showMutation: false,
+      editBlockScript: true,
     }
     bindAll(this, [
       "uploadMenuIcon",
@@ -132,6 +134,24 @@ class App extends Component {
       key: 'svg',
       render: (text, record) => (
         <img src={`data:image/svg+xml;utf8,${text}`} />
+      )
+    }, , {
+      title: 'block op',
+      key: 'blockop',
+      render: (text, record) => (
+        <span>
+          <a href="#" onClick={() => this.editBlock(record.opcode)} >
+            <Icon type="experiment" theme="twoTone" />
+          </a>
+          <Divider type="vertical" />
+          <a href="#" onClick={() => this.editBlock(record.opcode)} >
+            <Icon type="code" theme="twoTone" />
+          </a>
+          <Divider type="vertical" />
+          <a href="#" onClick={() => this.editBlock(record.opcode)} >
+            <Icon type="code" theme="twoTone" />
+          </a>
+        </span>
       )
     }, {
       title: 'Action',
@@ -783,6 +803,9 @@ module.exports = ${className};
             </Col>
           </Row>
         </Modal>
+        <BlockOprator
+          visible={this.state.editBlockScript}
+        />
       </Layout>
     );
   }
