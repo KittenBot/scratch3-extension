@@ -3,7 +3,6 @@ import LocalizedStrings from 'react-localization';
 import { Modal, Tabs } from 'antd';
 import React, { Component } from 'react';
 import MonacoEditor from 'react-monaco-editor';
-import {buildBlockOp} from './CodeBuilder';
 
 const TabPane = Tabs.TabPane;
 
@@ -62,7 +61,8 @@ class BlockGeneratorEditor extends Component {
             'switchCode'
         ])
         this.state = {
-            // genCpp: this.props.blockScript.script
+            genCpp: this.props.gen.genCpp,
+            genMpy: this.props.gen.genMpy,
         };
     }
 
@@ -72,7 +72,10 @@ class BlockGeneratorEditor extends Component {
         })
     }
     onApply (){
-
+        this.props.gen.applyGen({
+            genCpp: this.state.genCpp,
+            genMpy: this.state.genMpy
+        });
         this.props.onClose();
     }
     switchCode (c){
@@ -99,8 +102,8 @@ class BlockGeneratorEditor extends Component {
                     height="400"
                     language="cpp"
                     theme="vs-dark"
-                    value={this.state.script}
-                    onChange={this.onChange}
+                    value={this.state.genCpp}
+                    onChange={(code,e) => this.setState({genCpp: code})}
                 /></TabPane> :null}
                 {genOption.indexOf('micropython') > -1 ? <TabPane tab="Micropython" key="2">
                     <MonacoEditor 
@@ -108,8 +111,8 @@ class BlockGeneratorEditor extends Component {
                     height="400"
                     language="python"
                     theme="vs-dark"
-                    value={this.state.script}
-                    onChange={this.onChange}
+                    value={this.state.genMpy}
+                    onChange={(code,e) => this.setState({genMpy: code})}
                 /></TabPane> :null}
             </Tabs>
         </Modal>)

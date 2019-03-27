@@ -6,8 +6,14 @@ const BlockTypeMap = {
   hat: "HAT"
 }
 
-const buildBlockGen = function (opcode, args){
-  
+const buildBlockGenCpp = function (opcode, args){
+  const code = `${opcode}Cpp (gen, block){\n  cppComm();\n  return gen.template2code(block, '${opcode}')\n}\n`
+  return code;
+}
+
+const buildBlockGenMpy = function (opcode, args){
+  const code = `${opcode}Cpp (gen, block){\n  mpyComm();\n  return gen.template2code(block, '${opcode}')\n}\n`
+  return code;
 }
 
 const buildBlockOp = function(opcode, args){
@@ -42,9 +48,21 @@ const buildJsCode = function(opt, blocks){
         }
       }
       blockCode.text = `'${txt}'`;
-      blocksInfo.push(blockCode)
       const script = block.script || buildBlockOp(block.opcode, block.args);
       blockFunctions.push(script)
+      if (block.genCpp || block.genMpy){
+        blockCode.gen = {};
+        if (block.genCpp){
+          blockCode.gen.arduino = `this.${block.opcode}Cpp`
+          blockFunctions.push(block.genCpp);
+        }
+        if (block.genMpy){
+          blockCode.gen.micropy = `this.${block.opcode}Mpy`
+          blockFunctions.push(block.genMpy);
+        }
+      }
+
+      blocksInfo.push(blockCode)
     }
     
     let blkInfoCode = JSON.stringify(blocksInfo, null, 2);
@@ -128,6 +146,7 @@ class ${opt.className}{
       blocks: ${blkInfoCode}
     }
   }
+
 ${blockFunctions.join('\n')}
 }
 
@@ -142,5 +161,6 @@ module.exports = ${opt.className};
 export {
   buildJsCode,
   buildBlockOp,
-  buildBlockGen
+  buildBlockGenCpp,
+  buildBlockGenMpy
 };

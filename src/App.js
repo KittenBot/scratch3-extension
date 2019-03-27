@@ -14,7 +14,7 @@ import micropyImg from './micropy.png';
 import arduinoImg from './arduino.png';
 import pythonImg from './python.png';
 
-import {buildJsCode, buildBlockOp, buildBlockGen} from './CodeBuilder';
+import {buildJsCode, buildBlockOp, buildBlockGenCpp, buildBlockGenMpy} from './CodeBuilder';
 
 const { SubMenu } = Menu;
 const { Header, Content, Footer, Sider } = Layout;
@@ -594,14 +594,23 @@ class App extends Component {
     const block = this.state.blocks.filter(blk => blk.opcode === opcode);
     if (block && block.length == 1){
       const blk = block[0];
-      if (!blk.gen){
-        blk.gen = buildBlockGen(blk.opcode, blk.args);
-      }
-      this.setState({
-        blockGenerator: {
-          
+      const blockGenerator = {
+        opcode: blk.opcode,
+        applyGen: (gen) => {
+          if (gen.genCpp) blk.genCpp = gen.genCpp;
+          if (gen.genMpy) blk.genMpy = gen.genMpy;
         }
-      });
+      }
+      if (!blk.gen){
+        for (const code of this.state.genOption){
+          if (code === 'arduino'){
+            blockGenerator.genCpp = blk.genCpp || buildBlockGenCpp(blk.opcode, blk.args);
+          } else if(code === 'micropython'){
+            blockGenerator.genMpy = blk.genMpy || buildBlockGenMpy(blk.opcode, blk.args);
+          }
+        }
+      }
+      this.setState({blockGenerator});
     }
   }
 
