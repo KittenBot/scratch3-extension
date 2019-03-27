@@ -6,13 +6,26 @@ const BlockTypeMap = {
   hat: "HAT"
 }
 
+const buildEmptyHeadCpp = function (extID){
+  return `cppComm(gen){
+  gen.includes_['${extID}'] = '#include "YourHeader.h"';
+  gen.definitions_['${extID}'] = 'YourClass object;';
+};`
+}
+
+const buildEmptyHeadMpy = function (extID){
+  return `mpyComm(gen){
+  gen.includes_['${extID}'] = 'import YourClass';
+};`
+}
+
 const buildBlockGenCpp = function (opcode, args){
-  const code = `${opcode}Cpp (gen, block){\n  cppComm();\n  return gen.template2code(block, '${opcode}')\n}\n`
+  const code = `${opcode}Cpp (gen, block){\n  cppComm(gen);\n  return gen.template2code(block, '${opcode}')\n}\n`
   return code;
 }
 
 const buildBlockGenMpy = function (opcode, args){
-  const code = `${opcode}Cpp (gen, block){\n  mpyComm();\n  return gen.template2code(block, '${opcode}')\n}\n`
+  const code = `${opcode}Cpp (gen, block){\n  mpyComm(gen);\n  return gen.template2code(block, '${opcode}')\n}\n`
   return code;
 }
 
@@ -68,6 +81,9 @@ const buildJsCode = function(opt, blocks){
     let blkInfoCode = JSON.stringify(blocksInfo, null, 2);
     blkInfoCode = blkInfoCode.replace(/"/g, '');
     blkInfoCode = blkInfoCode.replace(/\n/g, '\n      ')
+
+    opt.genCppHead && blockFunctions.push(opt.genCppHead);
+    opt.genMpyHead && blockFunctions.push(opt.genMpyHead);
 
     const indexJS = `
 // create by scratch3-extension generator
@@ -162,5 +178,7 @@ export {
   buildJsCode,
   buildBlockOp,
   buildBlockGenCpp,
-  buildBlockGenMpy
+  buildBlockGenMpy,
+  buildEmptyHeadCpp,
+  buildEmptyHeadMpy
 };

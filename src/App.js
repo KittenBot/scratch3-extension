@@ -14,7 +14,10 @@ import micropyImg from './micropy.png';
 import arduinoImg from './arduino.png';
 import pythonImg from './python.png';
 
-import {buildJsCode, buildBlockOp, buildBlockGenCpp, buildBlockGenMpy} from './CodeBuilder';
+import {buildJsCode, buildBlockOp, 
+  buildBlockGenCpp, buildBlockGenMpy,
+  buildEmptyHeadCpp, buildEmptyHeadMpy
+} from './CodeBuilder';
 
 const { SubMenu } = Menu;
 const { Header, Content, Footer, Sider } = Layout;
@@ -107,6 +110,7 @@ class App extends Component {
       showMutation: false,
       blockScript: null,
       genOption: [],
+      genHeadScript: null,
       blockGenerator: null,
       isShowCodePreview: false
     }
@@ -133,6 +137,7 @@ class App extends Component {
       "loadFromJson",
       "exportJs",
       "editBlockScript",
+      "editGeneratorHead",
       "editBlockGenerator",
       "onExtoptionChange"
     ]);
@@ -590,6 +595,23 @@ class App extends Component {
     }
   }
 
+  editGeneratorHead (){
+    const genHeadScript = {
+      applyGen: (gen) => {
+        if (gen.genCpp) this.setState({genCppHead: gen.genCpp});
+        if (gen.genMpy) this.setState({genMpyHead: gen.genMpy});
+      }
+    }
+    for (const code of this.state.genOption){
+      if (code === 'arduino'){
+        genHeadScript.genCpp = this.state.genCppHead || buildEmptyHeadCpp(this.state.extID);
+      } else if(code === 'micropython'){
+        genHeadScript.genMpy = this.state.genMpyHead || buildEmptyHeadMpy(this.state.extID);
+      }
+    }
+    this.setState({genHeadScript});
+  }
+
   editBlockGenerator (opcode){
     const block = this.state.blocks.filter(blk => blk.opcode === opcode);
     if (block && block.length == 1){
@@ -649,6 +671,8 @@ class App extends Component {
       color2: this.state.color2,
       menuIconURI: this.state.menuIcon ? `"${this.state.menuIcon}"` : 'null',
       blockIconURI: this.state.blockIcon ? `"${this.state.blockIcon}"` : 'null',
+      genCppHead: this.state.genCppHead,
+      genMpyHead: this.state.genMpyHead,
     }
     const indexJS = buildJsCode(option, this.state.blocks);
     return indexJS;
@@ -755,7 +779,7 @@ class App extends Component {
                 <Row>
                   <Checkbox.Group options={extOption} defaultValue={[]} onChange={this.onExtoptionChange} />
                   <Divider type="vertical" />
-                  <Button onClick={() => {}}>{strings.genHeader}</Button>
+                  <Button onClick={this.editGeneratorHead}>{strings.genHeader}</Button>
                 </Row>
                 <Divider>{strings.addblock}</Divider>
                 <Row className="btn-wrap">
@@ -814,6 +838,11 @@ class App extends Component {
             </Col>
           </Row>
         </Modal>
+        {this.state.genHeadScript ? <BlockGeneratorEditor
+          gen={this.state.genHeadScript}
+          genOption={this.state.genOption}
+          onClose={() => this.setState({genHeadScript: null})}
+        /> : null}
         {this.state.blockScript ? <BlockScriptEditor
           blockScript={this.state.blockScript}
           onClose={() => this.setState({blockScript: null})}
