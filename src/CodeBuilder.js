@@ -6,6 +6,9 @@ const BlockTypeMap = {
   hat: "HAT"
 }
 
+const buildBlockGen = function (opcode, args){
+  
+}
 
 const buildBlockOp = function(opcode, args){
   const argDefine = args.reduce((sc, arg) => {
@@ -138,6 +141,6 @@ module.exports = ${opt.className};
 
 export {
   buildJsCode,
-  buildBlockOp
-
+  buildBlockOp,
+  buildBlockGen
 };

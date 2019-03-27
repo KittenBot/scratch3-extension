@@ -7,10 +7,14 @@ import Blockly from 'scratch-blocks';
 import { SketchPicker } from 'react-color';
 import logo from './s3ext.png';
 import './App.css';
-import {BlockScriptEditor, CodePreview} from './BlockEditor';
+import {BlockScriptEditor, CodePreview, BlockGeneratorEditor} from './BlockEditor';
 import { string } from 'postcss-selector-parser';
 
-import {buildJsCode, buildBlockOp} from './CodeBuilder';
+import micropyImg from './micropy.png';
+import arduinoImg from './arduino.png';
+import pythonImg from './python.png';
+
+import {buildJsCode, buildBlockOp, buildBlockGen} from './CodeBuilder';
 
 const { SubMenu } = Menu;
 const { Header, Content, Footer, Sider } = Layout;
@@ -22,7 +26,7 @@ let strings = new LocalizedStrings({
     extName: "Extension Name",
     preview: "Generate Preview",
     extdef: "Extension Define",
-    extimg: "Extension Image",
+    generator: "Blocks to Code",
     maincolor: "Extension Color",
     secondcolor: "Parameter Color",
     menuIcon: "Menu Icon",
@@ -39,13 +43,14 @@ let strings = new LocalizedStrings({
     delSure: "delete this block?",
     uniqBlockId: "* block ID should be unique",
     uniqBlockName: "* block parameter names should be unique",
+    genHeader: "Edit Header"
   },
   zh: {
     extID: "插件ID",
     extName: "插件名称",
     preview: "生成预览",
     extdef: "插件定义",
-    extimg: "插件图标",
+    generator: "图形化转代码",
     maincolor: "插件颜色",
     secondcolor: "变量颜色",
     menuIcon: "菜单栏图标",
@@ -62,6 +67,7 @@ let strings = new LocalizedStrings({
     delSure: "删除该方块?",
     uniqBlockId: "* 积木ID需要全局唯一",
     uniqBlockName: "* 积木参数名字需要唯一",
+    genHeader: "编辑头文件"
   }
 });
 
@@ -76,8 +82,8 @@ const OUTPUT_SHAPE_SQUARE = 3;
 
 
 const extOption = [
-  { label: 'Comm', value: 'comm' },
-  { label: 'Generator', value: 'gen' }
+  { label: <span><img className="radio-img" src={arduinoImg} />Arduino</span>, value: 'arduino' },
+  { label: <span><img className="radio-img" src={micropyImg} />Micro Python</span>, value: 'micropython' }
 ];
 
 class App extends Component {
@@ -100,8 +106,9 @@ class App extends Component {
       addBlockType: '',
       showMutation: false,
       blockScript: null,
+      genOption: [],
+      blockGenerator: null,
       isShowCodePreview: false
-      
     }
     bindAll(this, [
       "uploadMenuIcon",
@@ -126,6 +133,7 @@ class App extends Component {
       "loadFromJson",
       "exportJs",
       "editBlockScript",
+      "editBlockGenerator",
       "onExtoptionChange"
     ]);
 
@@ -149,10 +157,15 @@ class App extends Component {
         <span>
           <a href="#" onClick={() => this.editBlockScript(record.opcode)} >
             <Tooltip title="Block Script">
-              <Icon type="code" theme="twoTone" style={{fontSize: 24}}/>
+              <Icon type="message" theme="twoTone" style={{fontSize: 24}}/>
             </Tooltip>
           </a>
           <Divider type="vertical" />
+          <a href="#" onClick={() => this.editBlockGenerator(record.opcode)} >
+            <Tooltip title="Block To Code">
+              <Icon type="code" theme="twoTone" style={{fontSize: 24}}/>
+            </Tooltip>
+          </a>
         </span>
       )
     }, {
@@ -187,7 +200,9 @@ class App extends Component {
   }
 
   onExtoptionChange (opt){
-    console.log("ext opt", opt)
+    this.setState({
+      genOption: opt
+    })
   }
 
   uploadMenuIcon (file){
@@ -575,6 +590,21 @@ class App extends Component {
     }
   }
 
+  editBlockGenerator (opcode){
+    const block = this.state.blocks.filter(blk => blk.opcode === opcode);
+    if (block && block.length == 1){
+      const blk = block[0];
+      if (!blk.gen){
+        blk.gen = buildBlockGen(blk.opcode, blk.args);
+      }
+      this.setState({
+        blockGenerator: {
+          
+        }
+      });
+    }
+  }
+
   saveToJson (){
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, null, 2));
     const downloadAnchorNode = document.createElement('a');
@@ -686,10 +716,6 @@ class App extends Component {
                       </div> : null }
                   </Col>
                 </Row>
-                <Row>
-                  <Checkbox.Group options={extOption} defaultValue={[]} onChange={this.onExtoptionChange} />
-                </Row>
-                <Divider>{strings.extimg}</Divider>
                 <Row className="config-row">
                   <Col span={4}>
                     {this.state.menuIcon ? <img className="icon-img" src={this.state.menuIcon} /> : null}
@@ -715,6 +741,12 @@ class App extends Component {
                         <Button><Icon type="picture"/>{strings.blockIcon}</Button>
                     </Upload>
                   </Col>
+                </Row>
+                <Divider>{strings.generator}</Divider>
+                <Row>
+                  <Checkbox.Group options={extOption} defaultValue={[]} onChange={this.onExtoptionChange} />
+                  <Divider type="vertical" />
+                  <Button onClick={() => {}}>{strings.genHeader}</Button>
                 </Row>
                 <Divider>{strings.addblock}</Divider>
                 <Row className="btn-wrap">
@@ -776,6 +808,11 @@ class App extends Component {
         {this.state.blockScript ? <BlockScriptEditor
           blockScript={this.state.blockScript}
           onClose={() => this.setState({blockScript: null})}
+        /> : null}
+        {this.state.blockGenerator ? <BlockGeneratorEditor
+          gen={this.state.blockGenerator}
+          genOption={this.state.genOption}
+          onClose={() => this.setState({blockGenerator: null})}
         /> : null}
         {this.state.isShowCodePreview ? <CodePreview
           code={this.state.indexJS}

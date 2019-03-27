@@ -1,10 +1,11 @@
 import bindAll from 'lodash.bindall';
 import LocalizedStrings from 'react-localization';
-import { Modal } from 'antd';
+import { Modal, Tabs } from 'antd';
 import React, { Component } from 'react';
 import MonacoEditor from 'react-monaco-editor';
 import {buildBlockOp} from './CodeBuilder';
 
+const TabPane = Tabs.TabPane;
 
 class BlockScriptEditor extends Component {
     constructor (props){
@@ -50,6 +51,70 @@ class BlockScriptEditor extends Component {
             />
         </Modal>)
     }
+}
+
+class BlockGeneratorEditor extends Component {
+    constructor (props){
+        super(props);
+        bindAll(this, [
+            'onChange',
+            'onApply',
+            'switchCode'
+        ])
+        this.state = {
+            // genCpp: this.props.blockScript.script
+        };
+    }
+
+    onChange(newValue, e) {
+        this.setState({
+            script: newValue
+        })
+    }
+    onApply (){
+
+        this.props.onClose();
+    }
+    switchCode (c){
+
+    }
+    render (){
+        const {
+            onClose,
+            genOption,
+            gen,
+        } = this.props;
+
+        return (<Modal
+            title="Generator Editor"
+            visible={Boolean(gen)}
+            onOk={this.onApply}
+            onCancel={onClose}
+            width={640}
+        >
+            <Tabs onChange={this.switchCode} type="card">
+                {genOption.indexOf('arduino') > -1 ? <TabPane tab="Arduino" key="1">
+                    <MonacoEditor 
+                    width="600"
+                    height="400"
+                    language="cpp"
+                    theme="vs-dark"
+                    value={this.state.script}
+                    onChange={this.onChange}
+                /></TabPane> :null}
+                {genOption.indexOf('micropython') > -1 ? <TabPane tab="Micropython" key="2">
+                    <MonacoEditor 
+                    width="600"
+                    height="400"
+                    language="python"
+                    theme="vs-dark"
+                    value={this.state.script}
+                    onChange={this.onChange}
+                /></TabPane> :null}
+            </Tabs>
+        </Modal>)
+    }
+
 }
 
 
@@ -108,5 +173,6 @@ class CodePreview extends Component {
 
 export {
     BlockScriptEditor,
+    BlockGeneratorEditor,
     CodePreview
 }
