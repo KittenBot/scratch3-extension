@@ -8,8 +8,8 @@ self.__precacheManifest = [
     "url": "/scratch3-extension/static/js/0.af8ef6ad.chunk.js"
   },
   {
-    "revision": "25f9f58c73c3854b9712",
-    "url": "/scratch3-extension/static/js/main.25f9f58c.chunk.js"
+    "revision": "f3535e3e7bf26b912e28",
+    "url": "/scratch3-extension/static/js/main.f3535e3e.chunk.js"
   },
   {
     "revision": "0fc72503c5fb2b592ad5",
@@ -232,7 +232,7 @@ self.__precacheManifest = [
     "url": "/scratch3-extension/static/js/55.874f671e.chunk.js"
   },
   {
-    "revision": "25f9f58c73c3854b9712",
+    "revision": "f3535e3e7bf26b912e28",
     "url": "/scratch3-extension/static/css/main.d51eb795.chunk.css"
   },
   {
@@ -244,7 +244,7 @@ self.__precacheManifest = [
     "url": "/scratch3-extension/json.worker.js"
   },
   {
-    "revision": "6f9df7e57ff0ba295ce708324c6e51d5",
+    "revision": "4850e3df085e4c2c9c17fd1d56cf9354",
     "url": "/scratch3-extension/index.html"
   },
   {
