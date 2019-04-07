@@ -1,6 +1,6 @@
 import bindAll from 'lodash.bindall';
 import LocalizedStrings from 'react-localization';
-import { Checkbox, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, Popconfirm, Input, Modal, Upload, Tooltip } from 'antd';
+import { Checkbox, Row, Col, Button, Layout, Icon, Menu , Divider, Table, Radio, Popconfirm, Input, Modal, Upload, Tooltip, message } from 'antd';
 import React, { Component } from 'react';
 import Blockly from 'scratch-blocks';
 
@@ -46,7 +46,8 @@ let strings = new LocalizedStrings({
     delSure: "delete this block?",
     uniqBlockId: "* block ID should be unique",
     uniqBlockName: "* block parameter names should be unique",
-    genHeader: "Edit Header"
+    genHeader: "Edit Header",
+    promptBlkID: "Please Enter Block ID"
   },
   zh: {
     extID: "插件ID",
@@ -70,7 +71,8 @@ let strings = new LocalizedStrings({
     delSure: "删除该方块?",
     uniqBlockId: "* 积木ID需要全局唯一",
     uniqBlockName: "* 积木参数名字需要唯一",
-    genHeader: "编辑头文件"
+    genHeader: "编辑头文件",
+    promptBlkID: "请输入方块ID"
   }
 });
 
@@ -481,7 +483,8 @@ class App extends Component {
     }
 
     const msg = proccode.join(" ");
-    const mutationText = `<xml>${Blockly.Xml.domToText(mutation)}</xml>`;
+    let mutationText = `<xml>${Blockly.Xml.domToText(mutation)}</xml>`;
+    console.log("mutationText >>", mutationText);
     const newBlock = {
       opcode: this.state.editBlockID,
       svg: xml,
@@ -512,7 +515,10 @@ class App extends Component {
     this.mutationRoot.addBooleanExternal();
   }
   addBlockFun (){
+    const blkid = prompt(strings.promptBlkID);
+    if (!blkid || blkid.length == 0) return;
     this.setState({
+      editBlockID: blkid,
       showMutation: true,
       addBlockType: 'func',
     });
@@ -524,7 +530,10 @@ class App extends Component {
   }
 
   addBlockOutput (){
+    const blkid = prompt(strings.promptBlkID);
+    if (!blkid || blkid.length == 0) return;
     this.setState({
+      editBlockID: blkid,
       addBlockType: 'output',
       showMutation: true
     });
@@ -535,7 +544,10 @@ class App extends Component {
   }
 
   addBlockBool (){
+    const blkid = prompt(strings.promptBlkID);
+    if (!blkid || blkid.length == 0) return;
     this.setState({
+      editBlockID: blkid,
       addBlockType: 'bool',
       showMutation: true
     });
@@ -548,7 +560,10 @@ class App extends Component {
   }
 
   addBlockHat (){
+    const blkid = prompt(strings.promptBlkID);
+    if (!blkid || blkid.length == 0) return;
     this.setState({
+      editBlockID: blkid,
       addBlockType: 'hat',
       showMutation: true
     });
@@ -565,6 +580,7 @@ class App extends Component {
       this.declareWorkspace.clear();
       this.makeBlock(block[0].type, block[0].mutationText);
       this.setState({
+        editBlockID: opcode,
         showMutation: true,
         addBlockType: block[0].type
       });
