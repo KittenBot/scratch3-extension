@@ -48,6 +48,9 @@ const buildJsCode = function(opt, blocks){
         opcode: `'${block.opcode}'`,
         blockType: `BlockType.${BlockTypeMap[block.type]}`
       };
+      if (block.type === 'hat'){
+        blockCode.isEdgeActivated = false
+      }
       if (block.args.length){
         blockCode.arguments = {};
         for (let n=0;n<block.args.length;n++){
